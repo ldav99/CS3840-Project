@@ -62,3 +62,43 @@ The goal of this project is to build a machine learning model that predicts pass
     - Neutral
     - Dissatisfied 
 
+### Dataset Being Used  
+We will be using the **Airline Satisfaction** dataset, which contains passenger feedback and service quality ratings.  
+[Click here to view the dataset](https://www.kaggle.com/datasets/teejmahal20/airline-passenger-satisfaction/data).
+
+## Neural Network Model
+
+For this project, we utilize a neural network to predict airline passenger satisfaction based on various features related to passenger demographics, travel information, service satisfaction ratings, and flight delay times.
+
+### Model Architecture
+
+The architecture of the neural network consists of the following layers:
+
+1. **Input Layer**:  
+   The input layer contains a number of neurons corresponding to the number of features in the dataset. These features include passenger demographics, travel information, satisfaction ratings for various services, and flight delays.
+
+2. **Hidden Layers**:  
+   We start with two hidden layers. Each hidden layer is composed of 128 neurons and uses the **ReLU** activation function. ReLU is chosen for its ability to efficiently handle non-linearity in the data and prevent vanishing gradients.
+
+3. **Output Layer**:  
+   The output layer consists of three neurons, corresponding to the three possible classes: **Satisfied**, **Neutral**, and **Dissatisfied**. We use the **Softmax** activation function to output a probability distribution across the classes, ensuring the sum of the output probabilities is 1.
+
+### Model Hyperparameters
+
+- **Loss Function**: Since this is a multi-class classification problem, we use **Categorical Cross-Entropy** as the loss function.
+- **Metrics**: We evaluate the model’s performance using accuracy as the primary metric.
+  
+### Data Preprocessing
+
+Before training the model, we preprocess the data as follows:
+- **Normalization**: Continuous features, such as age, flight distance, and delay times, are normalized to a range of [0, 1] to improve model convergence.
+
+- **Handling Missing Values**: Any missing or incomplete data points are imputed with the mean or mode of the respective feature, depending on the feature type.
+
+### Regularization
+
+To prevent overfitting and improve generalization, we employ **dropout** with a dropout rate of 0.2. This technique randomly deactivates neurons during training, which forces the model to learn more robust features.
+
+### Model Training
+
+The model is trained using a validation split to monitor its performance on unseen data during training. The training process will run for a specified number of epochs, and the learning rate will be adjusted dynamically using early stopping if the validation accuracy plateaus.
