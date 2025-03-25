@@ -7,12 +7,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import functions
+import torch
+from torch import nn
 
 def main():
-    df = pd.read_csv('data/train.csv')
+    df_train = pd.read_csv('data/train.csv')
+    df_test = pd.read_csv('data/test.csv')
 
-    print(df.head())
-    print(df.info())
+    #print(df_train.head())
+    print(df_train.info())
+
+#Pre Process the Data
+#---------------------------------------
+    df_train_ohe = pd.get_dummies(df_train, columns=['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction'])
+    print(df_train_ohe.info())
+
+
 
 #Call external functions
 #---------------------------------------
@@ -23,17 +33,17 @@ def main():
 #---------------------------------------
     #Plot Accuracy
     #plt.plot(data)
-    plt.ylabel('Loss')
-    plt.xlabel('Epochs')
-    plt.title("Accuracy")
+    # plt.ylabel('Loss')
+    # plt.xlabel('Epochs')
+    # plt.title("Accuracy")
     #plt.show()
 
     #Plot Precision and Recall
     #Google says these are one graph
     #plt.plot(data)
-    plt.ylabel('Precision')
-    plt.xlabel('Recall')
-    plt.title("Precision-Recall")
+    # plt.ylabel('Precision')
+    # plt.xlabel('Recall')
+    # plt.title("Precision-Recall")
     #plt.show()
 
 
