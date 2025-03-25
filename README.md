@@ -75,30 +75,13 @@ For this project, we utilize a neural network to predict airline passenger satis
 The architecture of the neural network consists of the following layers:
 
 1. **Input Layer**:  
-   The input layer contains a number of neurons corresponding to the number of features in the dataset. These features include passenger demographics, travel information, satisfaction ratings for various services, and flight delays.
+   The input layer contains a number of neurons corresponding to the number of features in the dataset.
 
 2. **Hidden Layers**:  
-   We start with two hidden layers. Each hidden layer is composed of 128 neurons and uses the **ReLU** activation function. ReLU is chosen for its ability to efficiently handle non-linearity in the data and prevent vanishing gradients.
+  We use one hidden layer with n-amount of neurons and a linear activation function. This allows the model to capture linear relationships in the data.
 
 3. **Output Layer**:  
-   The output layer consists of three neurons, corresponding to the three possible classes: **Satisfied**, **Neutral**, and **Dissatisfied**. We use the **Softmax** activation function to output a probability distribution across the classes, ensuring the sum of the output probabilities is 1.
-
-### Model Hyperparameters
-
-- **Loss Function**: Since this is a multi-class classification problem, we use **Categorical Cross-Entropy** as the loss function.
-- **Metrics**: We evaluate the model’s performance using accuracy as the primary metric.
-  
-### Data Preprocessing
-
-Before training the model, we preprocess the data as follows:
-- **Normalization**: Continuous features, such as age, flight distance, and delay times, are normalized to a range of [0, 1] to improve model convergence.
-
-- **Handling Missing Values**: Any missing or incomplete data points are imputed with the mean or mode of the respective feature, depending on the feature type.
-
-### Regularization
-
-To prevent overfitting and improve generalization, we employ **dropout** with a dropout rate of 0.2. This technique randomly deactivates neurons during training, which forces the model to learn more robust features.
+   The output layer consists of a single neuron with a sigmoid activation function. This will output the probability of the passenger being satisfied (1) or not satisfied (0), making it a binary classification problem.
 
 ### Model Training
-
 The model is trained using a validation split to monitor its performance on unseen data during training. The training process will run for a specified number of epochs, and the learning rate will be adjusted dynamically using early stopping if the validation accuracy plateaus.
