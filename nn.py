@@ -15,9 +15,9 @@ class NeuralNetwork(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
 #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
-            nn.Linear(103904, 25976),
-#TODO What a function are we using?
-            nn.ReLU(),
+            nn.Linear(103904, 1),
+#Sigmoid function for binary classification
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
