@@ -63,12 +63,11 @@ The goal of this project is to build a machine learning model that predicts pass
     - Dissatisfied 
 
 ### Dataset Being Used  
-We will be using the **Airline Satisfaction** dataset, which contains passenger feedback and service quality ratings.  
-[Click here to view the dataset](https://www.kaggle.com/datasets/teejmahal20/airline-passenger-satisfaction/data).
+We will be using the **[Airline Satisfaction](https://www.kaggle.com/datasets/teejmahal20/airline-passenger-satisfaction/data).** dataset, which contains passenger feedback and service quality ratings.  
 
 ## Neural Network Model
 
-For this project, we utilize a neural network to predict airline passenger satisfaction based on various features related to passenger demographics, travel information, service satisfaction ratings, and flight delay times.
+For this project, we utilize a neural network to classify airline passenger satisfaction based on various features related to passenger demographics, travel information, service satisfaction ratings, and flight delay times.
 
 ### Model Architecture
 
