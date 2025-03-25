@@ -6,7 +6,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import functions
+import nn
 import torch
 from torch import nn
 
@@ -29,7 +29,7 @@ def main():
 
 
 
-#Results
+#Results 
 #---------------------------------------
     #Plot Accuracy
     #plt.plot(data)
