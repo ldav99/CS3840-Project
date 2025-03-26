@@ -12,15 +12,17 @@ from torchvision import datasets, transforms
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
+        self.flatten = nn.Flatten()# Might not need to flatten
+        self.linear_sigmoid_stack = nn.Sequential(
 #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
-            nn.Linear(103904, 1),
+#First Layer
+            nn.Linear(103904, 103904),
 #Sigmoid function for binary classification
             nn.Sigmoid(),
+#Maybe add more layers/output layer here. Needs more research.
         )
 
     def forward(self, x):
-        x = self.flatten(x)
+        x = self.flatten(x) #Maybe dont need this
         logits = self.linear_relu_stack(x)
         return logits

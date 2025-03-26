@@ -6,21 +6,22 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import nn
+import neuralNetwork
 import torch
 from torch import nn
 
 def main():
+    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     df_train = pd.read_csv('data/train.csv')
     df_test = pd.read_csv('data/test.csv')
 
-    #print(df_train.head())
-    print(df_train.info())
+#     #print(df_train.head())
+#     print(df_train.info())
 
-#Pre Process the Data
-#---------------------------------------
+# #Pre Process the Data
+# #---------------------------------------
     df_train_ohe = pd.get_dummies(df_train, columns=['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction'])
-    print(df_train_ohe.info())
+    #print(df_train_ohe.info())
 
 
 
