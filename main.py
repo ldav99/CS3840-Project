@@ -30,7 +30,7 @@ def main():
 
 #Call external functions
 #---------------------------------------
-    model = NeuralNetwork().to(device)
+    model = neuralNetwork.NeuralNetwork().to(device)
     print(model)
 
 
