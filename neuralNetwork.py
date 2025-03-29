@@ -16,7 +16,7 @@ class NeuralNetwork(nn.Module):
         self.linear_sigmoid_stack = nn.Sequential(
 #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
 #First Layer
-            nn.Linear(103904, 103904),
+            nn.Linear(2, 1),
 #Sigmoid function for binary classification
             nn.Sigmoid(),
 #Maybe add more layers/output layer here. Needs more research.
