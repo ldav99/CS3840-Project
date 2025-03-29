@@ -14,10 +14,10 @@ class NeuralNetwork(nn.Module):
         super().__init__()
         self.flatten = nn.Flatten()# Might not need to flatten
         self.linear_sigmoid_stack = nn.Sequential(
-#TODO Determine input features and output features: Train entires: 103904 Test entries:25976
-#First Layer
-            nn.Linear(2, 1),
-#Sigmoid function for binary classification
+        #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
+        #First Layer
+            nn.Linear(22, 512), #22 input features, 512 output features is arbitrary, can be changed.
+        #Sigmoid function for binary classification
             nn.Sigmoid(),
 #Maybe add more layers/output layer here. Needs more research.
         )
