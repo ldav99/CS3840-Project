@@ -24,5 +24,5 @@ class NeuralNetwork(nn.Module):
 
     def forward(self, x):
         x = self.flatten(x) #Maybe dont need this
-        logits = self.linear_relu_stack(x)
+        logits = self.linear_sigmoid_stack(x)
         return logits
