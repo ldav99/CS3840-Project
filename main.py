@@ -19,7 +19,7 @@ def main():
     # device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     # print(f"Using {device} device")
     df_train = pd.read_csv('data/train.csv')
-    df_test = pd.read_csv('data/test.csv')
+    # df_test = pd.read_csv('data/test.csv')
     df_train_small = df_train.head()
     
 
@@ -40,8 +40,6 @@ def main():
     # ensures features have a similar scale, reducing bias from large-valued features
     scaler = StandardScaler()
     df_train_ohe[numerical_features] = scaler.fit_transform(df_train_ohe[numerical_features])
-
-
     
 #Convert DataFrame to tensor for pytorch
     print(df_train_ohe.info())
