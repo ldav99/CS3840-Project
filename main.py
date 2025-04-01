@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 import neuralNetwork
 import torch
 from torch import nn
+from torch.utils.data import Dataset, DataLoader
 
 def main():
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
@@ -19,14 +20,17 @@ def main():
     # print(f"Using {device} device")
     df_train = pd.read_csv('data/train.csv')
     df_test = pd.read_csv('data/test.csv')
+    df_train_small = df_train.head()
+    
+
 
 #     #print(df_train.head())
 #     print(df_train.info())
 
 # #Pre Process the Data
 # #---------------------------------------
-    df_train_ohe = pd.get_dummies(df_train, columns=['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction'])
-    print(df_train_ohe.info())
+    df_train_ohe = pd.get_dummies(df_train_small, columns=['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction'])
+    #print(df_train_ohe.info())
 
     # Normalization of numerical features
     numerical_features = ['Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
@@ -38,10 +42,20 @@ def main():
     df_train_ohe[numerical_features] = scaler.fit_transform(df_train_ohe[numerical_features])
 
 
+    
+#Convert DataFrame to tensor for pytorch
+    print(df_train_ohe.info())
+    print('-------')
+    print(df_train_ohe.dtypes)
+    # temp = df_train_ohe.to_numpy()
+    # tensor = torch.from_numpy(temp)
+
+
 #Call external functions
 #---------------------------------------
     model = neuralNetwork.NeuralNetwork().to(device)
-    print(model)
+
+    #print(model(tensor))
 
 
 
