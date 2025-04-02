@@ -73,7 +73,8 @@ def main():
 
 #Call external functions
 #---------------------------------------
-    model = neuralNetwork.NeuralNetwork().to(device)
+    input_size = df_train_ohe.shape[1] # Number of features in the dataset
+    model = neuralNetwork.NeuralNetwork(input_size).to(device) # Pass input size to the constructor
     print(model)
 
 #Results 
