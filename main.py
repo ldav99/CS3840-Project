@@ -6,7 +6,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 import neuralNetwork
 import torch
 from torch import nn
@@ -32,14 +32,20 @@ def main():
     df_train_ohe = pd.get_dummies(df_train_small, columns=['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction'])
     #print(df_train_ohe.info())
 
-    # Normalization of numerical features
-    numerical_features = ['Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
-                         'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
-                         'Inflight entertainment', 'On-board service', 'Leg room service', 'Baggage handling',
-                         'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes']
-    # ensures features have a similar scale, reducing bias from large-valued features
-    scaler = StandardScaler()
-    df_train_ohe[numerical_features] = scaler.fit_transform(df_train_ohe[numerical_features])
+    label_encoder = LabelEncoder()
+    df_raw = pd.concat([df_train, df_train], ignore_index=True, sort=False)
+    df_raw['satisfaction']= label_encoder.fit_transform(df_raw['satisfaction'])  # Neutral=0, Satisfied=1
+
+
+
+    # # Normalization of numerical features
+    # numerical_features = ['Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
+    #                      'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
+    #                      'Inflight entertainment', 'On-board service', 'Leg room service', 'Baggage handling',
+    #                      'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes']
+    # # ensures features have a similar scale, reducing bias from large-valued features
+    # scaler = StandardScaler()
+    # df_train_ohe[numerical_features] = scaler.fit_transform(df_train_ohe[numerical_features])
     
 #Convert DataFrame to tensor for pytorch
     print(df_train_ohe.info())
