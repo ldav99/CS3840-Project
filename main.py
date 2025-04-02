@@ -34,7 +34,6 @@ def main():
 
     #Pre Process the Data
     #---------------------------------------
-
     expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']
     missing_cols = [col for col in expected_columns if col not in df_train.columns]
     if missing_cols:
@@ -61,6 +60,7 @@ def main():
 
     scaler = StandardScaler()
     df_train_ohe[numerical_features] = scaler.fit_transform(df_train_ohe[numerical_features])
+    print(df_train_ohe.info())  
 
     
 #Convert DataFrame to tensor for pytorch
@@ -71,16 +71,10 @@ def main():
     tensor = torch.tensor(df_train_ohe.values, dtype=torch.float32)
     print(f"Tensor shape: {tensor.shape}")
 
-    # Call external functions
- 
-
-
 #Call external functions
 #---------------------------------------
     model = neuralNetwork.NeuralNetwork().to(device)
     print(model)
-
-
 
 #Results 
 #---------------------------------------

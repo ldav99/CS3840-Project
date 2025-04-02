@@ -19,7 +19,13 @@ class NeuralNetwork(nn.Module):
             nn.Linear(22, 512), #22 input features, 512 output features is arbitrary, can be changed.
         #Sigmoid function for binary classification
             nn.Sigmoid(),
-#Maybe add more layers/output layer here. Needs more research.
+        #Maybe add more layers/output layer here. Needs more research.
+            nn.Linear(512, 256), #512 input features, 256 output features
+            nn.Sigmoid(),
+            nn.Linear(256, 128), #256 input features, 128 output features
+            nn.Sigmoid(),
+            nn.Linear(128, 1), #128 input features, 1 output feature for binary classification.
+            nn.Sigmoid() #Sigmoid function for binary classification
         )
 
     def forward(self, x):
