@@ -17,13 +17,13 @@ class NeuralNetwork(nn.Module):
         #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
         #First Layer
             nn.Linear(inputSize, 512), #22 input features, 512 output features is arbitrary, can be changed.
-            nn.Sigmoid(),
+            nn.ReLU(),
         #Second Layer
             nn.Linear(512, 256), #512 input features, 256 output features
-            nn.Sigmoid(),
+            nn.ReLU(),
         #Third Layer
             nn.Linear(256, 128), #256 input features, 128 output features
-            nn.Sigmoid(),
+            nn.ReLU(),
         #Fourth Layer
             nn.Linear(128, 1), #128 input features, 1 output feature for binary classification.
             nn.Sigmoid() #Sigmoid function for binary classification
