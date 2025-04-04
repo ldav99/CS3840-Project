@@ -106,10 +106,10 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
             # Convert logits to binary predictions
             predictions = (torch.sigmoid(outputs) > 0.5).float()
             correct_Predictions += (predictions.squeeze() == targets).sum().item()
-            totalSamples += targets.size(0)
+            total_Samples += targets.size(0)
 
         epoch_Loss = total_Loss / len(trainLoader)
-        epoch_Accuracy = correct_Predictions / totalSamples
+        epoch_Accuracy = correct_Predictions / total_Samples
         losses.append(epoch_Loss)
         accuracies.append(epoch_Accuracy)
 
