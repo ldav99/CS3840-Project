@@ -83,11 +83,11 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
     size = len(trainLoader.dataset)
 
     model.to(device)
-    losses = []
+    losses = np.array([])
     accuracies = []
 
     model.train()
-    
+
     correct_Predictions = 0
     total_Samples = 0
     for batch, (inputs, targets) in enumerate(trainLoader):
@@ -104,7 +104,8 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
         optimizer.zero_grad()
 
 
-        if batch % 1000 == 0:
+        if batch % 300 == 0:
+            losses = np.append(losses, loss.item())
             loss, current = loss.item(), batch * 64 + len(inputs)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
@@ -116,6 +117,7 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
     epoch_Loss = loss.item()
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
+    return losses
 
 
 # ----------------------------------------
@@ -143,12 +145,15 @@ def main():
 
     # Build and train the model
     model = loadModel(device, effective_input_size)
-    losses = []
+    losses = np.array([])
+    results = np.array([])
     accuracies = []
 
     for epoch in range(10):
         print(f"Epoch {epoch+1}\n-------------------------------")
-        trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
+        results = trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
+        losses = np.append(losses, results)
+    print(losses)
 
     # Simple demonstration plot of the first batch's feature distribution
     batch = next(iter(trainLoader))
@@ -158,11 +163,11 @@ def main():
     plt.title("Boxplot of One Batch of Features")
     plt.show()
 
-    # plt.plot(losses)
-    # plt.ylabel('Loss')
-    # plt.xlabel('# of Epochs')
-    # plt.title("Loss over time")
-    # plt.show()
+    plt.plot(losses)
+    plt.ylabel('Loss')
+    plt.xlabel('# of Epochs')
+    plt.title("Loss over time")
+    plt.show()
 
     # plt.plot(accuracies)
     # plt.ylabel('Accuracy')
