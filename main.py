@@ -85,11 +85,10 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
     accuracies = []
 
     model.train()
+    total_Loss = 0.0
+    correct_Predictions = 0
+    total_Samples = 0
     for epoch in range(epochs):
-        total_Loss = 0.0
-        correct_Predictions = 0
-        total_Samples = 0
-
         for inputs, targets in trainLoader:
             inputs = inputs.to(device)
             targets = targets.to(device).float()
@@ -114,6 +113,7 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
         accuracies.append(epoch_Accuracy)
 
         print(f"Epoch {epoch+1}/{epochs} - Loss: {epoch_Loss:.4f}, Accuracy: {epoch_Accuracy:.4f}")
+    return losses, accuracies
 
 
 # ----------------------------------------
@@ -141,7 +141,9 @@ def main():
 
     # Build and train the model
     model = loadModel(device, effective_input_size)
-    trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
+    losses = []
+    accuracies = []
+    losses, accuracies = trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
 
     # Simple demonstration plot of the first batch's feature distribution
     batch = next(iter(trainLoader))
@@ -149,6 +151,18 @@ def main():
     plt.ylabel('Feature Values')
     plt.xlabel('Features')
     plt.title("Boxplot of One Batch of Features")
+    plt.show()
+
+    plt.plot(losses)
+    plt.ylabel('Loss')
+    plt.xlabel('# of Epochs')
+    plt.title("Loss over time")
+    plt.show()
+
+    plt.plot(losses)
+    plt.ylabel('Accuracy')
+    plt.xlabel('# of Epochs')
+    plt.title("Accuracy over time")
     plt.show()
 
 
