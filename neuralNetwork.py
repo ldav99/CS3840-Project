@@ -26,7 +26,7 @@ class NeuralNetwork(nn.Module):
             nn.ReLU(),
         #Fourth Layer
             nn.Linear(128, 1), #128 input features, 1 output feature for binary classification.
-            nn.Sigmoid() # if we use loss 
+            #nn.Sigmoid() # if we use loss 
         )
 
     def forward(self, x):

@@ -77,7 +77,7 @@ def loadModel(device, inputSize):
 # Training Function
 # ----------------------------------------
 def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
-    criterion = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
+    lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     model.to(device)
@@ -85,20 +85,24 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
     accuracies = []
 
     model.train()
-    total_Loss = 0.0
-    correct_Predictions = 0
-    total_Samples = 0
+
+#https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
     for epoch in range(epochs):
+        total_Loss = 0.0
+        total_Samples = 0
+        correct_Predictions = 0
         for inputs, targets in trainLoader:
             inputs = inputs.to(device)
             targets = targets.to(device).float()
-
-            optimizer.zero_grad()
+            
             outputs = model(inputs)
             # Unsqueeze targets to match [batch_size, 1] shape of outputs
-            loss = criterion(outputs, targets.unsqueeze(1))
+            loss = lossFunction(outputs, targets.unsqueeze(1))
+
+            #Backpropagation
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
 
             total_Loss += loss.item()
 
@@ -109,10 +113,10 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
 
         epoch_Loss = total_Loss / len(trainLoader)
         epoch_Accuracy = correct_Predictions / total_Samples
-        losses.append(epoch_Loss)
+        losses.append(loss.item())
         accuracies.append(epoch_Accuracy)
 
-        print(f"Epoch {epoch+1}/{epochs} - Loss: {epoch_Loss:.4f}, Accuracy: {epoch_Accuracy:.4f}")
+        print(f"Epoch {epoch+1}/{epochs} - Loss: {loss.item():.4f}, Accuracy: {epoch_Accuracy:.4f}")
     return losses, accuracies
 
 
