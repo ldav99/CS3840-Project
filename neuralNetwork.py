@@ -26,10 +26,9 @@ class NeuralNetwork(nn.Module):
             nn.ReLU(),
         #Fourth Layer
             nn.Linear(128, 1), #128 input features, 1 output feature for binary classification.
-            nn.Sigmoid() #Sigmoid function for binary classification
+            # nn.Sigmoid() # if we use loss 
         )
 
     def forward(self, x):
-        #x = self.flatten(x) #Maybe dont need this
-        logits = self.linear_sigmoid_stack(x)
+        logits = self.linear_sigmoid_stack(x) # output raw 
         return logits
