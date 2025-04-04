@@ -13,38 +13,22 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-def main():
-    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-    print(f"Using {device} device")
-
-    #Load Data
-    #---------------------------------------   
-    # Check if the file exists
-    if not os.path.exists('data/train.csv'):
-        print("Error: 'data/train.csv' file not found.")
-        return
-    else: 
-        df_train = pd.read_csv('data/train.csv')
-    
-    # df_test = pd.read_csv('data/test.csv')
-    # df_train_small = df_train.head()
-    
-    print(df_train.head())
-    print(df_train.info())
-
-    #Pre Process the Data
-    #---------------------------------------
+#Function to run model
+#TODO Add number of Epochs??
+def callModel(dataset, device):
+#Pre Process the Data
+#---------------------------------------
     expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']
-    missing_cols = [col for col in expected_columns if col not in df_train.columns]
+    missing_cols = [col for col in expected_columns if col not in dataset.columns]
     if missing_cols:
         print(f"Warning: The following columns are missing and cannot be one-hot encoded: {missing_cols}")
-    df_train_ohe = pd.get_dummies(df_train, columns=[col for col in expected_columns if col in df_train.columns])
+    dataset_ohe = pd.get_dummies(dataset, columns=[col for col in expected_columns if col in dataset.columns])
 
-    print(df_train_ohe.info())  # Debugging information
+    print(dataset_ohe.info())  # Debugging information
 
     label_encoder = LabelEncoder()
-    if 'satisfaction' in df_train.columns:
-        df_train['satisfaction'] = label_encoder.fit_transform(df_train['satisfaction'])
+    if 'satisfaction' in dataset.columns:
+        dataset['satisfaction'] = label_encoder.fit_transform(dataset['satisfaction'])
     else:
         print("Error: 'satisfaction' column not found.")
 
@@ -56,39 +40,74 @@ def main():
                           'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes']
     
     # Handle missing values before scaling
-    df_train_ohe.fillna(df_train_ohe.mean(), inplace=True)
+    dataset_ohe.fillna(dataset_ohe.mean(), inplace=True)
 
     scaler = StandardScaler()
-    df_train_ohe[numerical_features] = scaler.fit_transform(df_train_ohe[numerical_features])
-    print(df_train_ohe.info())  
+    dataset_ohe[numerical_features] = scaler.fit_transform(dataset_ohe[numerical_features])
+    print(dataset_ohe.info())  
 
     
 #Convert DataFrame to tensor for pytorch
     # Ensure all categorical columns are numeric
-    df_train_ohe = df_train_ohe.astype(float)  # Convert all columns to float
+    dataset_ohe = dataset_ohe.astype(float)  # Convert all columns to float
 
     # Convert DataFrame to tensor
-    tensor = torch.tensor(df_train_ohe.values, dtype=torch.float32)
+    tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
     print(f"Tensor shape: {tensor.shape}")
 
 #Call external functions
 #---------------------------------------
-    input_size = df_train_ohe.shape[1]  # Number of features in the dataset
+    input_size = dataset_ohe.shape[1]  # Number of features in the dataset
     model = neuralNetwork.NeuralNetwork(input_size).to(device)  # Pass input size to the constructor
 
     # Pass the tensor through the model
     output = model(tensor.to(device))
     print(f"Model output: {output}")
-    print(model)
+    output_array = output.squeeze().detach().cpu().numpy()
+    return output_array
+
+
+def main():
+#Get device to use to run the model on
+    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+    print(f"Using {device} device")
+
+    #Load Data
+    #---------------------------------------   
+    # Check if the file exists
+    if not os.path.exists('data/train.csv'):
+        print("Error: 'data/train.csv' file not found.")
+        return
+    else: 
+        df_train = pd.read_csv('data/train.csv')
+
+    if not os.path.exists('data/test.csv'):
+        print("Error: 'data/test.csv' file not found.")
+        return
+    else: 
+        df_test = pd.read_csv('data/test.csv')
+    
+    print(df_train.head())
+    print(df_train.info())
+
+#Call model on train and test
+    trainResult = callModel(df_train, device)
+    testResult = callModel(df_test, device)
 
 #Results 
 #---------------------------------------
     #Plot Accuracy
-    #plt.plot(data)
-    # plt.ylabel('Loss')
-    # plt.xlabel('Epochs')
-    # plt.title("Accuracy")
-    #plt.show()
+    plt.boxplot(trainResult)
+    plt.ylabel('Loss')
+    plt.xlabel('Epochs')
+    plt.title("Accuracy")
+    plt.show()
+    
+    plt.boxplot(testResult)
+    plt.ylabel('Loss')
+    plt.xlabel('Epochs')
+    plt.title("Accuracy")
+    plt.show()
 
     #Plot Precision and Recall
     #Google says these are one graph
