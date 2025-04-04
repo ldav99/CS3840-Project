@@ -159,7 +159,7 @@ def main():
     plt.title("Loss over time")
     plt.show()
 
-    plt.plot(losses)
+    plt.plot(accuracies)
     plt.ylabel('Accuracy')
     plt.xlabel('# of Epochs')
     plt.title("Accuracy over time")
