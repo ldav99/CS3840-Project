@@ -79,33 +79,34 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
 
     model.train()
     
-    totalLoss = 0.0
-    correctPredictions = 0
-    totalSamples = 0
+    for epoch in range(epochs):
+        totalLoss = 0.0
+        correctPredictions = 0
+        totalSamples = 0
 
-    for inputs, targets in trainLoader:
-        inputs = inputs.to(device) # Initialize inputs
-        targets = targets.float()
+        for i in enumerate(trainLoader, 0):
+            inputs = inputs.to(device) # Initialize inputs
+            targets = targets.float()
 
-        optimizer.zero_grad() # zero the gradients before each epoch
-        # Forward pass
-        outputs = model(inputs) # Pass inputs through the model
-        # Compute the loss
-        loss = criterion(outputs, targets)
-        # Backward pass
-        loss.backward()
-        # Update the weights
-        optimizer.step()
-        totalLoss += loss.item()
-        # convert logits to binary predictions
-        predictions = (torch.sigmoid(outputs) > 0.5).float() # apply sigmoid to get probabilities
-        correctPredictions += (predictions == targets).sum().item() # count correct predictions
-        totalSamples += targets.size(0)
+            optimizer.zero_grad() # zero the gradients before each epoch
+            # Forward pass
+            outputs = model(inputs) # Pass inputs through the model
+            # Compute the loss
+            loss = criterion(outputs, targets)
+            # Backward pass
+            loss.backward()
+            # Update the weights
+            optimizer.step()
+            totalLoss += loss.item()
+            # convert logits to binary predictions
+            predictions = (torch.sigmoid(outputs) > 0.5).float() # apply sigmoid to get probabilities
+            correctPredictions += (predictions == targets).sum().item() # count correct predictions
+            totalSamples += targets.size(0)
     
-    epochLoss = totalLoss / len(trainLoader)
-    epochAccuracy = correctPredictions / totalSamples
-    losses.append(epochLoss)
-    accuracies.append(epochAccuracy)
+        epochLoss = totalLoss / len(trainLoader)
+        epochAccuracy = correctPredictions / totalSamples
+        losses.append(epochLoss)
+        accuracies.append(epochAccuracy)
    
 
 
