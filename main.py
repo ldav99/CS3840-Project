@@ -76,48 +76,48 @@ def loadModel(device, inputSize):
 # ----------------------------------------
 # Training Function
 # ----------------------------------------
+#https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
 def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    size = len(trainLoader.dataset)
 
     model.to(device)
-    losses = []
+    losses = np.array([])
     accuracies = []
 
     model.train()
 
-#https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
-    for epoch in range(epochs):
-        total_Loss = 0.0
-        total_Samples = 0
-        correct_Predictions = 0
-        for inputs, targets in trainLoader:
-            inputs = inputs.to(device)
-            targets = targets.to(device).float()
-            
-            outputs = model(inputs)
-            # Unsqueeze targets to match [batch_size, 1] shape of outputs
-            loss = lossFunction(outputs, targets.unsqueeze(1))
+    correct_Predictions = 0
+    total_Samples = 0
+    for batch, (inputs, targets) in enumerate(trainLoader):
+        inputs = inputs.to(device)
+        targets = targets.to(device).float()
 
-            #Backpropagation
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+        outputs = model(inputs)
+        # Unsqueeze targets to match [batch_size, 1] shape of outputs
+        loss = lossFunction(outputs, targets.unsqueeze(1))
+        
+        #Backprop
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
 
-            total_Loss += loss.item()
 
-            # Convert logits to binary predictions
-            predictions = (torch.sigmoid(outputs) > 0.5).float()
-            correct_Predictions += (predictions.squeeze() == targets).sum().item()
-            total_Samples += targets.size(0)
+        if batch % 300 == 0:
+            losses = np.append(losses, loss.item())
+            loss, current = loss.item(), batch * 64 + len(inputs)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+    
+        #Accuracy
+        predictions = (torch.sigmoid(outputs) > 0.5).float()
+        correct_Predictions += (predictions.squeeze() == targets).sum().item()
+        total_Samples += targets.size(0)
 
-        epoch_Loss = total_Loss / len(trainLoader)
-        epoch_Accuracy = correct_Predictions / total_Samples
-        losses.append(loss.item())
-        accuracies.append(epoch_Accuracy)
-
-        print(f"Epoch {epoch+1}/{epochs} - Loss: {loss.item():.4f}, Accuracy: {epoch_Accuracy:.4f}")
-    return losses, accuracies
+    epoch_Loss = loss.item()
+    epoch_Accuracy = correct_Predictions / total_Samples
+    print(f"Accuracy: {epoch_Accuracy:.4f}")
+    return losses
 
 
 # ----------------------------------------
@@ -145,9 +145,15 @@ def main():
 
     # Build and train the model
     model = loadModel(device, effective_input_size)
-    losses = []
+    losses = np.array([])
+    results = np.array([])
     accuracies = []
-    losses, accuracies = trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
+
+    for epoch in range(10):
+        print(f"Epoch {epoch+1}\n-------------------------------")
+        results = trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
+        losses = np.append(losses, results)
+    print(losses)
 
     # Simple demonstration plot of the first batch's feature distribution
     batch = next(iter(trainLoader))
@@ -163,11 +169,11 @@ def main():
     plt.title("Loss over time")
     plt.show()
 
-    plt.plot(accuracies)
-    plt.ylabel('Accuracy')
-    plt.xlabel('# of Epochs')
-    plt.title("Accuracy over time")
-    plt.show()
+    # plt.plot(accuracies)
+    # plt.ylabel('Accuracy')
+    # plt.xlabel('# of Epochs')
+    # plt.title("Accuracy over time")
+    # plt.show()
 
 
 
