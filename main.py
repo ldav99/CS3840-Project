@@ -17,25 +17,30 @@ from torch.utils.data import DataLoader, TensorDataset
 # Pre Process the Data
 # ---------------------------------------
 def callModel(dataset):
-    # Expected columns for one-hot encoding:
-    expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']
-    missing_cols = [col for col in expected_columns if col not in dataset.columns]
-    if missing_cols:
-        print(f"Warning: The following columns are missing and cannot be one-hot encoded: {missing_cols}")
-
-    # Apply one-hot encoding to available expected columns
-    dataset_ohe = pd.get_dummies(dataset, columns=[col for col in expected_columns if col in dataset.columns])
-
-    print(dataset_ohe.info())  # Debugging information
-
-    # Encode the target column if it exists in the original dataset
+    # Drop unnecessary columns
+    if 'Unnamed: 0' in dataset.columns:
+        dataset.drop(columns=['Unnamed: 0'], inplace=True)
+    if 'id' in dataset.columns:
+        dataset.drop(columns=['id'], inplace=True)
+    
     label_encoder = LabelEncoder()
     if 'satisfaction' in dataset.columns:
         dataset['satisfaction'] = label_encoder.fit_transform(dataset['satisfaction'])
     else:
         print("Error: 'satisfaction' column not found.")
+        return None, None
+    
+    expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class']
+    missing_cols = [col for col in expected_columns if col not in dataset.columns]
+    if missing_cols:
+        print(f"Warning: Missing categorical columns: {missing_cols}")
+    dataset = pd.get_dummies(dataset, columns=[col for col in expected_columns if col in dataset.columns])
 
-    # Normalization of numerical features
+    # Convert bool columns to int (after one-hot encoding)
+    for col in dataset.select_dtypes(include='bool').columns:
+        dataset[col] = dataset[col].astype(int)
+
+    # Define numerical features to scale
     numerical_features = [
         'Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
         'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
@@ -43,33 +48,38 @@ def callModel(dataset):
         'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes'
     ]
 
-    # Handle missing values before scaling
-    dataset_ohe.fillna(dataset_ohe.mean(), inplace=True)
+    # Handle missing values in numerical columns
+    numeric_cols = dataset.select_dtypes(include=[np.number]).columns
+    dataset[numeric_cols] = dataset[numeric_cols].fillna(dataset[numeric_cols].mean())
 
+    # Normalize numerical features
     scaler = StandardScaler()
-    dataset_ohe[numerical_features] = scaler.fit_transform(dataset_ohe[numerical_features])
-    print(dataset_ohe.info())
+    dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
 
-    # Convert all columns to float
-    dataset_ohe = dataset_ohe.astype(float)
-    tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
+    print(dataset.info())  # Final check before tensor conversion
 
-    # Extract input features and target labels (assuming the target is the last column)
-    inputs = tensor[:, :-1]
-    targets = tensor[:, -1]
 
-    # Create a dataset and dataloader
-    tensor_dataset = TensorDataset(inputs, targets)
+    # Separate inputs and targets
+    inputs = dataset.drop(columns='satisfaction').astype(float)
+    targets = dataset['satisfaction'].astype(float)
+
+    # Convert to PyTorch tensors
+    tensor_inputs = torch.tensor(inputs.values, dtype=torch.float32)
+    tensor_targets = torch.tensor(targets.values, dtype=torch.float32)
+
+    # Create TensorDataset and DataLoader
+    tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
     dataloader = DataLoader(tensor_dataset, batch_size=64, shuffle=True)
 
-    # Determine effective input size (number of features)
-    effective_input_size = inputs.shape[1]
+    effective_input_size = tensor_inputs.shape[1]
     return dataloader, effective_input_size
 
 
-def loadModel(device, inputSize):
-    # Build your neural network with the correct input size
+def loadModel(device, inputSize, model_path=None):
     model = neuralNetwork.NeuralNetwork(inputSize).to(device)
+    if model_path and os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        print(f"Loaded model from {model_path}")
     return model
 
 
@@ -84,7 +94,6 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
 
     model.to(device)
     losses = np.array([])
-    accuracies = []
 
     model.train()
 
@@ -115,9 +124,10 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
         total_Samples += targets.size(0)
 
     epoch_Loss = loss.item()
+    print(f"Epoch Loss: {epoch_Loss:.4f}")
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
-    return losses
+    return losses, epoch_Accuracy
 
 
 # ----------------------------------------
@@ -144,16 +154,23 @@ def main():
     trainLoader, effective_input_size = callModel(df_train)
 
     # Build and train the model
-    model = loadModel(device, effective_input_size)
+    model = loadModel(device, effective_input_size, model_path="saved_models/customer_satisfaction_model.pth")
     losses = np.array([])
-    results = np.array([])
+    # results = np.array([])
     accuracies = []
 
     for epoch in range(10):
         print(f"Epoch {epoch+1}\n-------------------------------")
-        results = trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
-        losses = np.append(losses, results)
+        losses, accuracy = trainModel(model, trainLoader, device)
+        losses = np.append(losses, losses)
+        accuracies.append(accuracy)
     print(losses)
+
+    # Save the model
+    model_path = "saved_models/customer_satisfaction_model.pth"
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
 
     # Simple demonstration plot of the first batch's feature distribution
     batch = next(iter(trainLoader))
@@ -169,11 +186,11 @@ def main():
     plt.title("Loss over time")
     plt.show()
 
-    # plt.plot(accuracies)
-    # plt.ylabel('Accuracy')
-    # plt.xlabel('# of Epochs')
-    # plt.title("Accuracy over time")
-    # plt.show()
+    plt.plot(accuracies)
+    plt.ylabel('Accuracy')
+    plt.xlabel('# of Epochs')
+    plt.title("Accuracy over time")
+    plt.show()
 
 
 
