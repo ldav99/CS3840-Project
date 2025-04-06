@@ -94,6 +94,7 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
 
     model.to(device)
     losses = np.array([])
+    accuracies = []
 
     model.train()
 
