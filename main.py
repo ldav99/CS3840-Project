@@ -90,14 +90,18 @@ def trainModel(model, dataloader, device, learning_rate):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     size = len(dataloader.dataset)
 
-    model.to(device)
+    model = model.to(device)
     losses = np.array([])
+    accuracies = []
 
     model.train()
 
     correct_Predictions = 0
     total_Samples = 0
-    for x, y in enumerate(dataloader):
+    for batch, (x, y) in enumerate(dataloader):
+        x = x.to(device)
+        y = y.to(device).float()
+
         outputs = model(x)
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
         loss = lossFunction(outputs, y.unsqueeze(1))
@@ -107,20 +111,23 @@ def trainModel(model, dataloader, device, learning_rate):
         optimizer.step()
         optimizer.zero_grad()
 
-        # if batch % 300 == 0:
-        #     losses = np.append(losses, loss.item())
-        #     loss, current = loss.item(), batch * 64 + len(y)
-        #     print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-    
-        # #Accuracy
-        # predictions = (torch.sigmoid(outputs) > 0.5).float()
-        # correct_Predictions += (predictions.squeeze() == y).sum().item()
-        # total_Samples += y.size(0)
 
-        # if batch % 300 == 0:
-        #     epoch_Accuracy = correct_Predictions / total_Samples
-        #     print(f"Accuracy: {epoch_Accuracy:.4f}")
-    return losses
+        if batch % 300 == 0:
+            losses = np.append(losses, loss.item())
+            loss, current = loss.item(), batch * 64 + len(x)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+    
+        #Accuracy
+        predictions = (torch.sigmoid(outputs) > 0.5).float()
+        correct_Predictions += (predictions.squeeze() == y).sum().item()
+        total_Samples += y.size(0)
+
+    epoch_Loss = loss.item()
+    print(f"Epoch Loss: {epoch_Loss:.4f}")
+    epoch_Accuracy = correct_Predictions / total_Samples
+    print(f"Accuracy: {epoch_Accuracy:.4f}")
+    return losses, epoch_Accuracy
+
 
 def testModel(dataloader, model):
     lossFunction = nn.BCEWithLogitsLoss()
