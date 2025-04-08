@@ -15,53 +15,69 @@ from torch.utils.data import DataLoader, TensorDataset
 
 # ---------------------------------------
 # Pre Process the Data
-# ---------------------------------------
+#---------------------------------------
 def preProcessing(dataset):
-    # Expected columns for one-hot encoding:
-    expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']
-    missing_cols = [col for col in expected_columns if col not in dataset.columns]
-    if missing_cols:
-        print(f"Warning: The following columns are missing and cannot be one-hot encoded: {missing_cols}")
-
-    # Apply one-hot encoding to available expected columns
-    dataset_ohe = pd.get_dummies(dataset, columns=[col for col in expected_columns if col in dataset.columns])
-
-    print(dataset_ohe.info())  # Debugging information
-
-    # Encode the target column if it exists in the original dataset
+    # Drop unnecessary columns
+    if 'Unnamed: 0' in dataset.columns:
+        dataset.drop(columns=['Unnamed: 0'], inplace=True)
+    if 'id' in dataset.columns:
+        dataset.drop(columns=['id'], inplace=True)
+    
     label_encoder = LabelEncoder()
     if 'satisfaction' in dataset.columns:
         dataset['satisfaction'] = label_encoder.fit_transform(dataset['satisfaction'])
     else:
         print("Error: 'satisfaction' column not found.")
+        return None, None
+    
+    expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class']
+    missing_cols = [col for col in expected_columns if col not in dataset.columns]
+    if missing_cols:
+        print(f"Warning: Missing categorical columns: {missing_cols}")
+    dataset = pd.get_dummies(dataset, columns=[col for col in expected_columns if col in dataset.columns])
 
-    # Normalization of numerical features
-    # numerical_features = [
-    #     'Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
-    #     'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
-    #     'Inflight entertainment', 'On-board service', 'Leg room service', 'Baggage handling',
-    #     'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes'
-    # ]
+    # Convert bool columns to int (after one-hot encoding)
+    for col in dataset.select_dtypes(include='bool').columns:
+        dataset[col] = dataset[col].astype(int)
 
-    # Handle missing values before scaling
-    dataset_ohe.fillna(dataset_ohe.mean(), inplace=True)
+    # Define numerical features to scale
+    numerical_features = [
+        'Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
+        'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
+        'Inflight entertainment', 'On-board service', 'Leg room service', 'Baggage handling',
+        'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes'
+    ]
 
+    # Handle missing values in numerical columns
+    numeric_cols = dataset.select_dtypes(include=[np.number]).columns
+    dataset[numeric_cols] = dataset[numeric_cols].fillna(dataset[numeric_cols].mean())
+
+    # Normalize numerical features
     scaler = StandardScaler()
-    # dataset_ohe[numerical_features] = scaler.fit_transform(dataset_ohe[numerical_features])
-    print(dataset_ohe.info())
+    dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
 
-    # Convert all columns to float
-    dataset_ohe = dataset_ohe.astype(float)
-    tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
-
-    train_dataloader, = DataLoader(tensor, batch_size=64)
-    sizeOfData = tensor.shape[1]
-    return train_dataloader, sizeOfData
+    print(dataset.info())  # Final check before tensor conversion
 
 
-def loadModel(device):
+    # Separate inputs and targets
+    x = dataset.drop(columns='satisfaction').astype(float)
+    y = dataset['satisfaction'].astype(float)
+
+    # Convert to PyTorch tensors
+    tensor_inputs = torch.tensor(x.values, dtype=torch.float32)
+    tensor_targets = torch.tensor(y.values, dtype=torch.float32)
+
+    # Create TensorDataset and DataLoader
+    tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
+    dataloader = DataLoader(tensor_dataset, batch_size=64, shuffle=True)
+
+    effective_input_size = tensor_inputs.shape[1]
+    return dataloader, effective_input_size
+
+
+def loadModel(device, size):
     # Build your neural network with the correct input size
-    model = modelNN.NeuralNetwork().to(device)
+    model = modelNN.NeuralNetwork(size).to(device)
     return model
 
 
@@ -69,7 +85,7 @@ def loadModel(device):
 # Training Function
 # ----------------------------------------
 #https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
-def trainModel(model, dataloader, device, learning_rate=0.001):
+def trainModel(model, dataloader, device, learning_rate):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     size = len(dataloader.dataset)
@@ -81,30 +97,29 @@ def trainModel(model, dataloader, device, learning_rate=0.001):
 
     correct_Predictions = 0
     total_Samples = 0
-    for batch, data in enumerate(dataloader):
-        inputs, labels = data
-        outputs = model(inputs)
+    for x, y in enumerate(dataloader):
+        outputs = model(x)
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
-        loss = lossFunction(outputs, labels.unsqueeze(1))
+        loss = lossFunction(outputs, y.unsqueeze(1))
         
         #Backprop
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-        if batch % 300 == 0:
-            losses = np.append(losses, loss.item())
-            loss, current = loss.item(), batch * 64 + len(y)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+        # if batch % 300 == 0:
+        #     losses = np.append(losses, loss.item())
+        #     loss, current = loss.item(), batch * 64 + len(y)
+        #     print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
-        #Accuracy
-        predictions = (torch.sigmoid(outputs) > 0.5).float()
-        correct_Predictions += (predictions.squeeze() == y).sum().item()
-        total_Samples += y.size(0)
+        # #Accuracy
+        # predictions = (torch.sigmoid(outputs) > 0.5).float()
+        # correct_Predictions += (predictions.squeeze() == y).sum().item()
+        # total_Samples += y.size(0)
 
-        if batch % 300 == 0:
-            epoch_Accuracy = correct_Predictions / total_Samples
-            print(f"Accuracy: {epoch_Accuracy:.4f}")
+        # if batch % 300 == 0:
+        #     epoch_Accuracy = correct_Predictions / total_Samples
+        #     print(f"Accuracy: {epoch_Accuracy:.4f}")
     return losses
 
 def testModel(dataloader, model):
@@ -146,8 +161,6 @@ def main():
 
     # Preprocess training data and get DataLoader + effective input size
     processedDataLoader, size = preProcessing(df_train)
-
-    tensor = tensor.to(device)
 
     # Build and train the model
     model = loadModel(device, size)
