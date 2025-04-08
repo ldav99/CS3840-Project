@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-import neuralNetwork
+import neuralNetwork as modelNN
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, TensorDataset
 # ---------------------------------------
 # Pre Process the Data
 # ---------------------------------------
-def callModel(dataset):
+def preProcessing(dataset):
     # Expected columns for one-hot encoding:
     expected_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']
     missing_cols = [col for col in expected_columns if col not in dataset.columns]
@@ -36,40 +36,30 @@ def callModel(dataset):
         print("Error: 'satisfaction' column not found.")
 
     # Normalization of numerical features
-    numerical_features = [
-        'Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
-        'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
-        'Inflight entertainment', 'On-board service', 'Leg room service', 'Baggage handling',
-        'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes'
-    ]
+    # numerical_features = [
+    #     'Age', 'Flight Distance', 'Inflight wifi service', 'Departure/Arrival time convenient',
+    #     'Ease of Online booking', 'Gate location', 'Food and drink', 'Online boarding', 'Seat comfort',
+    #     'Inflight entertainment', 'On-board service', 'Leg room service', 'Baggage handling',
+    #     'Checkin service', 'Cleanliness', 'Departure Delay in Minutes', 'Arrival Delay in Minutes'
+    # ]
 
     # Handle missing values before scaling
     dataset_ohe.fillna(dataset_ohe.mean(), inplace=True)
 
     scaler = StandardScaler()
-    dataset_ohe[numerical_features] = scaler.fit_transform(dataset_ohe[numerical_features])
+    # dataset_ohe[numerical_features] = scaler.fit_transform(dataset_ohe[numerical_features])
     print(dataset_ohe.info())
 
     # Convert all columns to float
     dataset_ohe = dataset_ohe.astype(float)
     tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
 
-    # Extract input features and target labels (assuming the target is the last column)
-    inputs = tensor[:, :-1]
-    targets = tensor[:, -1]
-
-    # Create a dataset and dataloader
-    tensor_dataset = TensorDataset(inputs, targets)
-    dataloader = DataLoader(tensor_dataset, batch_size=64, shuffle=True)
-
-    # Determine effective input size (number of features)
-    effective_input_size = inputs.shape[1]
-    return dataloader, effective_input_size
+    return tensor, dataset_ohe
 
 
-def loadModel(device, inputSize):
+def loadModel(device):
     # Build your neural network with the correct input size
-    model = neuralNetwork.NeuralNetwork(inputSize).to(device)
+    model = modelNN.NeuralNetwork().to(device)
     return model
 
 
@@ -114,9 +104,9 @@ def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
         correct_Predictions += (predictions.squeeze() == targets).sum().item()
         total_Samples += targets.size(0)
 
-    epoch_Loss = loss.item()
-    epoch_Accuracy = correct_Predictions / total_Samples
-    print(f"Accuracy: {epoch_Accuracy:.4f}")
+        if batch % 300 == 0:
+            epoch_Accuracy = correct_Predictions / total_Samples
+            print(f"Accuracy: {epoch_Accuracy:.4f}")
     return losses
 
 
@@ -141,10 +131,10 @@ def main():
         df_test = pd.read_csv('data/test.csv')
 
     # Preprocess training data and get DataLoader + effective input size
-    trainLoader, effective_input_size = callModel(df_train)
+    trainLoader, effective_input_size = preProcessing(df_train)
 
     # Build and train the model
-    model = loadModel(device, effective_input_size)
+    model = loadModel(device)
     losses = np.array([])
     results = np.array([])
     accuracies = []
@@ -169,11 +159,11 @@ def main():
     plt.title("Loss over time")
     plt.show()
 
-    # plt.plot(accuracies)
-    # plt.ylabel('Accuracy')
-    # plt.xlabel('# of Epochs')
-    # plt.title("Accuracy over time")
-    # plt.show()
+    plt.plot(accuracies)
+    plt.ylabel('Accuracy')
+    plt.xlabel('# of Epochs')
+    plt.title("Accuracy over time")
+    plt.show()
 
 
 
