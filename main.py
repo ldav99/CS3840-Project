@@ -54,7 +54,10 @@ def preProcessing(dataset):
     dataset_ohe = dataset_ohe.astype(float)
     tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
 
-    return tensor, dataset_ohe
+    train_dataloader = DataLoader(dataset_ohe, batch_size=64, shuffle=True)
+
+
+    return tensor, train_dataloader
 
 
 def loadModel(device):
@@ -67,42 +70,37 @@ def loadModel(device):
 # Training Function
 # ----------------------------------------
 #https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
-def trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001):
+def trainModel(model, dataset, device, learning_rate=0.001):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    size = len(trainLoader.dataset)
+    size = len(dataset)
 
     model.to(device)
     losses = np.array([])
-    accuracies = []
 
     model.train()
 
     correct_Predictions = 0
     total_Samples = 0
-    for batch, (inputs, targets) in enumerate(trainLoader):
-        inputs = inputs.to(device)
-        targets = targets.to(device).float()
-
-        outputs = model(inputs)
+    for batch, (x, y) in enumerate(dataset):
+        outputs = model(x)
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
-        loss = lossFunction(outputs, targets.unsqueeze(1))
+        loss = lossFunction(outputs, y.unsqueeze(1))
         
         #Backprop
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-
         if batch % 300 == 0:
             losses = np.append(losses, loss.item())
-            loss, current = loss.item(), batch * 64 + len(inputs)
+            loss, current = loss.item(), batch * 64 + len(y)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
         #Accuracy
         predictions = (torch.sigmoid(outputs) > 0.5).float()
-        correct_Predictions += (predictions.squeeze() == targets).sum().item()
-        total_Samples += targets.size(0)
+        correct_Predictions += (predictions.squeeze() == y).sum().item()
+        total_Samples += y.size(0)
 
         if batch % 300 == 0:
             epoch_Accuracy = correct_Predictions / total_Samples
@@ -131,7 +129,7 @@ def main():
         df_test = pd.read_csv('data/test.csv')
 
     # Preprocess training data and get DataLoader + effective input size
-    trainLoader, effective_input_size = preProcessing(df_train)
+    tensor, processedDataLoader = preProcessing(df_train)
 
     # Build and train the model
     model = loadModel(device)
@@ -141,17 +139,17 @@ def main():
 
     for epoch in range(10):
         print(f"Epoch {epoch+1}\n-------------------------------")
-        results = trainModel(model, trainLoader, device, epochs=10, learning_rate=0.001)
+        results = trainModel(model, processedDataLoader, device, learning_rate=0.001)
         losses = np.append(losses, results)
     print(losses)
 
     # Simple demonstration plot of the first batch's feature distribution
-    batch = next(iter(trainLoader))
-    plt.boxplot(batch[0].numpy())
-    plt.ylabel('Feature Values')
-    plt.xlabel('Features')
-    plt.title("Boxplot of One Batch of Features")
-    plt.show()
+    # batch = next(iter(processedDatset))
+    # plt.boxplot(batch[0].numpy())
+    # plt.ylabel('Feature Values')
+    # plt.xlabel('Features')
+    # plt.title("Boxplot of One Batch of Features")
+    # plt.show()
 
     plt.plot(losses)
     plt.ylabel('Loss')
