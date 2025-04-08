@@ -10,17 +10,17 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, inputSize):
+    def __init__(self, size):
         super().__init__()
         # self.flatten = nn.Flatten()# Might not need to flatten
         self.linear_sigmoid_stack = nn.Sequential(
         #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
         #First Layer
-            nn.Linear(inputSize, 512), #22 input features, 512 output features is arbitrary, can be changed.
+            nn.Linear(size, 256), #22 input features, 512 output features is arbitrary, can be changed.
             nn.ReLU(),
         #Second Layer
-            nn.Linear(512, 256), #512 input features, 256 output features
-            nn.ReLU(),
+            # nn.Linear(512, 256), #512 input features, 256 output features
+            # nn.ReLU(),
         #Third Layer
             nn.Linear(256, 128), #256 input features, 128 output features
             nn.ReLU(),
@@ -30,5 +30,5 @@ class NeuralNetwork(nn.Module):
         )
 
     def forward(self, x):
-        logits = self.linear_sigmoid_stack(x) # output raw 
+        logits = self.linear_relu_stack(x) # output raw 
         return logits
