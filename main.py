@@ -54,10 +54,9 @@ def preProcessing(dataset):
     dataset_ohe = dataset_ohe.astype(float)
     tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
 
-    train_dataloader = DataLoader(tensor, batch_size=64)
-
-
-    return tensor, train_dataloader
+    train_dataloader, = DataLoader(tensor, batch_size=64)
+    sizeOfData = tensor.shape[1]
+    return train_dataloader, sizeOfData
 
 
 def loadModel(device):
@@ -82,10 +81,11 @@ def trainModel(model, dataloader, device, learning_rate=0.001):
 
     correct_Predictions = 0
     total_Samples = 0
-    for batch, (x, y) in enumerate(dataloader):
-        outputs = model(x)
+    for batch, data in enumerate(dataloader):
+        inputs, labels = data
+        outputs = model(inputs)
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
-        loss = lossFunction(outputs, y.unsqueeze(1))
+        loss = lossFunction(outputs, labels.unsqueeze(1))
         
         #Backprop
         loss.backward()
@@ -121,7 +121,7 @@ def testModel(dataloader, model):
             correct += (outputs.argmax(1) == y).type(torch.float).sum().item()
     testloss /= batch
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
 
 
 # ----------------------------------------
@@ -145,10 +145,12 @@ def main():
         df_test = pd.read_csv('data/test.csv')
 
     # Preprocess training data and get DataLoader + effective input size
-    tensor, processedDataLoader = preProcessing(df_train)
+    processedDataLoader, size = preProcessing(df_train)
+
+    tensor = tensor.to(device)
 
     # Build and train the model
-    model = loadModel(device)
+    model = loadModel(device, size)
     losses = np.array([])
     results = np.array([])
     accuracies = []
