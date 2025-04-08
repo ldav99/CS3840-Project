@@ -30,5 +30,5 @@ class NeuralNetwork(nn.Module):
         )
 
     def forward(self, x):
-        logits = self.linear_sigmoid_stack(x) # output raw 
+        logits = self.linear_relu_stack(x) # output raw 
         return logits

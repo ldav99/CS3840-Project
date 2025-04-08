@@ -54,7 +54,7 @@ def preProcessing(dataset):
     dataset_ohe = dataset_ohe.astype(float)
     tensor = torch.tensor(dataset_ohe.values, dtype=torch.float32)
 
-    train_dataloader = DataLoader(dataset_ohe, batch_size=64, shuffle=True)
+    train_dataloader = DataLoader(tensor, batch_size=64)
 
 
     return tensor, train_dataloader
@@ -70,10 +70,10 @@ def loadModel(device):
 # Training Function
 # ----------------------------------------
 #https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
-def trainModel(model, dataset, device, learning_rate=0.001):
+def trainModel(model, dataloader, device, learning_rate=0.001):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    size = len(dataset)
+    size = len(dataloader.dataset)
 
     model.to(device)
     losses = np.array([])
@@ -82,7 +82,7 @@ def trainModel(model, dataset, device, learning_rate=0.001):
 
     correct_Predictions = 0
     total_Samples = 0
-    for batch, (x, y) in enumerate(dataset):
+    for batch, (x, y) in enumerate(dataloader):
         outputs = model(x)
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
         loss = lossFunction(outputs, y.unsqueeze(1))
@@ -106,6 +106,22 @@ def trainModel(model, dataset, device, learning_rate=0.001):
             epoch_Accuracy = correct_Predictions / total_Samples
             print(f"Accuracy: {epoch_Accuracy:.4f}")
     return losses
+
+def testModel(dataloader, model):
+    lossFunction = nn.BCEWithLogitsLoss()
+    model.eval()
+    size = len(dataloader.dataset)
+    batch = len(dataloader)
+    testloss, correct = 0,0
+
+    with torch.no_grad():
+        for x, y in dataloader:
+            outputs = model(x)
+            testloss += lossFunction(outputs, y).item()
+            correct += (outputs.argmax(1) == y).type(torch.float).sum().item()
+    testloss /= batch
+    correct /= size
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
 # ----------------------------------------
@@ -139,8 +155,8 @@ def main():
 
     for epoch in range(10):
         print(f"Epoch {epoch+1}\n-------------------------------")
-        results = trainModel(model, processedDataLoader, device, learning_rate=0.001)
-        losses = np.append(losses, results)
+        trainModel(model, processedDataLoader, device, learning_rate=0.001)
+        testModel(processedDataLoader, model)
     print(losses)
 
     # Simple demonstration plot of the first batch's feature distribution
