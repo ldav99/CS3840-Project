@@ -129,21 +129,21 @@ def trainModel(model, dataloader, device, learning_rate):
     return losses, epoch_Accuracy
 
 
-def testModel(dataloader, model):
-    lossFunction = nn.BCEWithLogitsLoss()
-    model.eval()
-    size = len(dataloader.dataset)
-    batch = len(dataloader)
-    testloss, correct = 0,0
+# def testModel(dataloader, model):
+#     lossFunction = nn.BCEWithLogitsLoss()
+#     model.eval()
+#     size = len(dataloader.dataset)
+#     batch = len(dataloader)
+#     testloss, correct = 0,0
 
-    with torch.no_grad():
-        for x, y in dataloader:
-            outputs = model(x)
-            testloss += lossFunction(outputs, y).item()
-            correct += (outputs.argmax(1) == y).type(torch.float).sum().item()
-    testloss /= batch
-    correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
+#     with torch.no_grad():
+#         for x, y in dataloader:
+#             outputs = model(x)
+#             testloss += lossFunction(outputs, y).item()
+#             correct += (outputs.argmax(1) == y).type(torch.float).sum().item()
+#     testloss /= batch
+#     correct /= size
+#     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
 
 
 # ----------------------------------------
@@ -178,7 +178,7 @@ def main():
     for epoch in range(10):
         print(f"Epoch {epoch+1}\n-------------------------------")
         trainModel(model, processedDataLoader, device, learning_rate=0.001)
-        testModel(processedDataLoader, model)
+        #testModel(processedDataLoader, model)
     print(losses)
 
     # Simple demonstration plot of the first batch's feature distribution
