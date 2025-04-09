@@ -196,12 +196,9 @@ def main():
         testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
-        
-        
-        
-    
-    # torch.save(model.state_dict(), 'saved_model.pth')
-    # print("Model saved successfully.")
+          
+    torch.save(model.state_dict(), 'saved_models/saved_model.pth')
+    print("Model saved successfully.")
 
 
     # Simple demonstration plot of the first batch's feature distribution
