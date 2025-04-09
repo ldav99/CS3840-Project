@@ -16,16 +16,16 @@ class NeuralNetwork(nn.Module):
         self.linear_sigmoid_stack = nn.Sequential(
         #TODO Determine input features and output features: Train entires: 103904 Test entries:25976
         #First Layer
-            nn.Linear(size, 256), #22 input features, 512 output features is arbitrary, can be changed.
+            nn.Linear(size, 8), #22 input features, 512 output features is arbitrary, can be changed.
             nn.ReLU(),
         #Second Layer
             # nn.Linear(512, 256), #512 input features, 256 output features
             # nn.ReLU(),
         #Third Layer
-            nn.Linear(256, 128), #256 input features, 128 output features
+            nn.Linear(8, 4), #256 input features, 128 output features
             nn.ReLU(),
         #Fourth Layer
-            nn.Linear(128, 1), #128 input features, 1 output feature for binary classification.
+            nn.Linear(4, 1), #128 input features, 1 output feature for binary classification.
             #nn.Sigmoid() # if we use loss 
         )
 

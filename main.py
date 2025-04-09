@@ -77,7 +77,7 @@ def preProcessing(dataset):
 
 def loadModel(device, size):
     # Build your neural network with the correct input size
-    model_path = 'saved_models/saved_model.pth'
+    model_path = 'saved_models/saved_model8-4lr0.000tty05.pth'
     model = modelNN.NeuralNetwork(size).to(device)
     
     if os.path.exists(model_path):
@@ -134,7 +134,7 @@ def trainModel(model, dataloader, device, learning_rate):
     print(f"Epoch Loss: {epoch_Loss:.4f}")
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
-    return losses, epoch_Accuracy
+    return epoch_Loss, epoch_Accuracy
 
 
 def testModel(dataloader, model):
@@ -147,7 +147,7 @@ def testModel(dataloader, model):
     with torch.no_grad():
         for x, y in dataloader:
             outputs = model(x)
-            testloss = lossFunction(outputs, y.unsqueeze(1))
+            testloss += lossFunction(outputs, y.unsqueeze(1))
             predictions = (torch.sigmoid(outputs) > 0.5).float().squeeze()
             correct += (predictions == y).sum().item()
     testloss /= batch
@@ -160,7 +160,7 @@ def testModel(dataloader, model):
 # Main Function
 # ----------------------------------------
 def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu" #torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device} device")
 
     # Make sure these files exist in a 'data' folder:
@@ -189,7 +189,7 @@ def main():
 
     for epoch in range(10):
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.001)
+        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.00005)
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
         print(f"Mean train Loss: {trainLosses.mean():.4f}")
