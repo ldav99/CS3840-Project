@@ -75,9 +75,9 @@ def preProcessing(dataset):
     return dataloader, effective_input_size
 
 
-def loadModel(device, size):
+def loadModel(device, size, path):
     # Build your neural network with the correct input size
-    model_path = 'saved_models/saved_model8-4lr0.000tty05.pth'
+    model_path = path
     model = modelNN.NeuralNetwork(size).to(device)
     
     if os.path.exists(model_path):
@@ -180,8 +180,11 @@ def main():
     processedDataLoader, size = preProcessing(df_train)
     proceesedTestDataLoader, size = preProcessing(df_test)
 
+    #Initialize path for model
+    modelPath = "saved_models/saved_model8-4lr00005.pth"
+
     # Build and train the model
-    model = loadModel(device, size)
+    model = loadModel(device, size, modelPath)
     trainLosses = np.array([])
     trainAccuracies = np.array([])
     testLosses = np.array([])
@@ -197,7 +200,7 @@ def main():
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
           
-    torch.save(model.state_dict(), 'saved_models/saved_model.pth')
+    torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
 
 
