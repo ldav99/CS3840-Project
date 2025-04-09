@@ -69,7 +69,7 @@ def preProcessing(dataset):
 
     # Create TensorDataset and DataLoader
     tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
-    dataloader = DataLoader(tensor_dataset, batch_size=64, shuffle=True)
+    dataloader = DataLoader(tensor_dataset, batch_size=12, shuffle=True)
 
     effective_input_size = tensor_inputs.shape[1]
     return dataloader, effective_input_size
@@ -153,6 +153,7 @@ def testModel(dataloader, model):
     testloss /= batch
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
+    return testloss, correct
 
 
 # ----------------------------------------
@@ -177,26 +178,31 @@ def main():
 
     # Preprocess training data and get DataLoader + effective input size
     processedDataLoader, size = preProcessing(df_train)
+    proceesedTestDataLoader, size = preProcessing(df_test)
 
     # Build and train the model
     model = loadModel(device, size)
-    losses = np.array([])
-    results = np.array([])
-    accuracies = []
+    trainLosses = np.array([])
+    trainAccuracies = np.array([])
+    testLosses = np.array([])
+    testAccuracies = np.array([])
 
     for epoch in range(10):
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        loss, accuracy = trainModel(model, processedDataLoader, device, learning_rate=0.001)
-        losses = np.append(losses, loss.mean())
-        accuracies.append(accuracy)
-        print(f"Mean Loss: {loss.mean():.4f}")
+        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.001)
+        trainLosses = np.append(trainLosses, trainLoss)
+        trainAccuracies = np.append(trainAccuracies, trainAccuracy)
+        print(f"Mean train Loss: {trainLosses.mean():.4f}")
+        testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
+        testLosses = np.append(testLosses, testLoss)
+        testAccuracies = np.append(testAccuracies, testAccuracy)
+        
+        
+        
     
-    torch.save(model.state_dict(), 'saved_model.pth')
-    print("Model saved successfully.")
+    # torch.save(model.state_dict(), 'saved_model.pth')
+    # print("Model saved successfully.")
 
-    proceesedTestDataLoader, size = preProcessing(df_test)
-    model = loadModel(device, size)  # Reload the model to ensure it's in evaluation mode
-    testModel(proceesedTestDataLoader, model)
 
     # Simple demonstration plot of the first batch's feature distribution
     # batch = next(iter(processedDatset))
@@ -206,13 +212,15 @@ def main():
     # plt.title("Boxplot of One Batch of Features")
     # plt.show()
 
-    plt.plot(losses)
+    plt.plot(trainLoss, label='Train Loss')
+    plt.plot(testLoss, label='Test Loss')
     plt.ylabel('Loss')
     plt.xlabel('# of Epochs')
     plt.title("Loss over time")
     plt.show()
 
-    plt.plot(accuracies)
+    plt.plot(trainAccuracies, label='Train Accuracy')
+    plt.plot(testAccuracies, label='Test Accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('# of Epochs')
     plt.title("Accuracy over time")
