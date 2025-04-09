@@ -212,20 +212,21 @@ def main():
     # plt.title("Boxplot of One Batch of Features")
     # plt.show()
 
-    plt.plot(trainLoss, label='Train Loss')
-    plt.plot(testLoss, label='Test Loss')
+    plt.plot(trainLosses, label='Train Loss')
+    plt.plot(testLosses, label='Test Loss')
     plt.ylabel('Loss')
     plt.xlabel('# of Epochs')
-    plt.title("Loss over time")
+    plt.title("Loss over Time")
+    plt.legend()
     plt.show()
 
     plt.plot(trainAccuracies, label='Train Accuracy')
     plt.plot(testAccuracies, label='Test Accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('# of Epochs')
-    plt.title("Accuracy over time")
+    plt.title("Accuracy over Time")
+    plt.legend()
     plt.show()
-
 
 
 if __name__ == "__main__":
