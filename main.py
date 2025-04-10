@@ -58,9 +58,6 @@ def preProcessing(dataset):
     scaler = StandardScaler()
     dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
 
-    print(dataset.info())  # Final check before tensor conversion
-
-
     # Separate inputs and targets
     x = dataset.drop(columns='satisfaction').astype(float)
     y = dataset['satisfaction'].astype(float)
@@ -103,7 +100,6 @@ def trainModel(model, dataloader, device, learning_rate):
     model = model.to(device)
     losses = np.array([])
 
-    # precision, recall, f1 = [], [], []
     y_true = []
     y_pred = []
 
@@ -159,6 +155,9 @@ def testModel(dataloader, model):
     size = len(dataloader.dataset)
     batch = len(dataloader)
     testloss, correct = 0,0
+    
+    y_true = []
+    y_pred = []
 
     with torch.no_grad():
         for x, y in dataloader:
@@ -168,8 +167,10 @@ def testModel(dataloader, model):
             correct += (predictions == y).sum().item()
     testloss /= batch
     correct /= size
+    precision = precision_score(y_true, y_pred, zero_division=0)
+    recall = recall_score(y_true, y_pred, zero_division=0)
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
-    return testloss, correct
+    return testloss, correct, precision, recall
 
 
 # ----------------------------------------
@@ -207,10 +208,10 @@ def main():
     testAccuracies = np.array([])
     trainPrecisions = np.array([])
     trainRecalls = np.array([])
-    # testPrecisions = np.array([])
-    # testRecalls = np.array([])
+    testPrecisions = np.array([])
+    testRecalls = np.array([])
 
-    for epoch in range(10):
+    for epoch in range(30):
         print(f"\nEpoch {epoch+1}\n-------------------------------")
         trainLoss, trainAccuracy, trainPrecision, trainRecall = trainModel(model, processedDataLoader, device, learning_rate=0.00005)
         
@@ -222,11 +223,14 @@ def main():
 
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
-        
-    print(f"Mean train Loss: {trainLosses.mean():.4f}")
-    testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
+    
+   
+    testLoss, testAccuracy, testPrecision, testRecall = testModel(proceesedTestDataLoader, model)
     testLosses = np.append(testLosses, testLoss)
     testAccuracies = np.append(testAccuracies, testAccuracy)
+    testPrecisions = np.append(testPrecisions, testPrecision)
+    testRecalls = np.append(testRecalls, testRecall)
+ 
 
     # Simple demonstration plot of the first batch's feature distribution
     # batch = next(iter(processedDatset))
@@ -245,7 +249,7 @@ def main():
     plt.show()
 
     plt.plot(trainPrecisions, label='Train Precision')
-    # plt.plot(testPrecisions, label='Test Precision')
+    plt.plot(testPrecisions, label='Test Precision')
     plt.ylabel('Precision')
     plt.xlabel('# of Epochs')
     plt.title("Precision over Time")
