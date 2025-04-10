@@ -12,7 +12,7 @@ from torchvision import datasets, transforms
 class NeuralNetwork(nn.Module):
     """
     Neural Network model for binary classification.
-    This model has three fully connected layers with ReLU activation in between.
+    This model has three fully connected layers with ReLU activation and Dropout in between.
     """
     def __init__(self, size):
         """
@@ -23,36 +23,20 @@ class NeuralNetwork(nn.Module):
         """
         super().__init__()
         
-        # Define the layers of the network using nn.Sequential for simplicity.
         self.linear_sigmoid_stack = nn.Sequential(
-            # First Layer: Linear transformation (size input features -> 8 output features)
-            nn.Linear(size, 8),   # 22 input features (size), 8 output features
-            nn.ReLU(),            # Apply ReLU activation function
+            nn.Linear(size, 8),    # Input layer
+            nn.BatchNorm1d(8),
+            nn.ReLU(),
+            nn.Dropout(p=0.1),     # Dropout after first activation
 
-            # Second Layer (commented out): Would add another layer with 512 input and 256 output features
-            # nn.Linear(512, 256),  # 512 input features, 256 output features
-            # nn.ReLU(),            # Apply ReLU activation function
+            nn.Linear(8, 4),       # Hidden layer
+            nn.BatchNorm1d(4),
+            nn.ReLU(),
 
-            # Third Layer: Linear transformation (8 input features -> 4 output features)
-            nn.Linear(8, 4),      # 8 input features, 4 output features
-            nn.ReLU(),            # Apply ReLU activation function
+            nn.Linear(4, 1)        # Output layer (binary classification)
 
-            # Fourth Layer: Output layer with 1 output feature (binary classification)
-            nn.Linear(4, 1),      # 4 input features, 1 output feature (binary classification)
-            # We do not need a Sigmoid here because the loss function will handle it (BCEWithLogitsLoss)
         )
 
     def forward(self, x):
-        """
-        Define the forward pass for the model.
-        
-        Arguments:
-        x (Tensor): The input data tensor.
-        
-        Returns:
-        Tensor: The output of the model, raw logits (no activation function here, for BCEWithLogitsLoss).
-        """
-        # Pass the input through the network layers.
-        logits = self.linear_sigmoid_stack(x)  # Output raw logits (no activation needed here for BCE loss)
-        
+        logits = self.linear_sigmoid_stack(x)
         return logits
