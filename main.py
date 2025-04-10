@@ -1,8 +1,3 @@
-#Monica Brutto, Luke Davidson, Sam Webster
-#CS-3840
-#Dr. Wen Zhang 
-#Final Project
-
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,6 +7,7 @@ import neuralNetwork as modelNN
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
+from torch.optim.lr_scheduler import ExponentialLR
 
 # ---------------------------------------
 # Pre Process the Data
@@ -69,7 +65,7 @@ def preProcessing(dataset):
 
     # Create TensorDataset and DataLoader
     tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
-    dataloader = DataLoader(tensor_dataset, batch_size=12, shuffle=True)
+    dataloader = DataLoader(tensor_dataset, batch_size=64, shuffle=True)
 
     effective_input_size = tensor_inputs.shape[1]
     return dataloader, effective_input_size
@@ -92,14 +88,14 @@ def loadModel(device, size, path):
 # ----------------------------------------
 # Training Function
 # ----------------------------------------
-#https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
 def trainModel(model, dataloader, device, learning_rate):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = ExponentialLR(optimizer, gamma=0.95)  # Decay by 5% every epoch
+    print(scheduler)
     size = len(dataloader.dataset)
-
     model = model.to(device)
-    losses = np.array([])
+    losses = []  # Changed to list for better memory management
     accuracies = []
 
     model.train()
@@ -114,28 +110,30 @@ def trainModel(model, dataloader, device, learning_rate):
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
         loss = lossFunction(outputs, y.unsqueeze(1))
         
-        #Backprop
+        # Backprop
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-
         if batch % 300 == 0:
-            losses = np.append(losses, loss.item())
-            loss, current = loss.item(), batch * 64 + len(x)
+            losses.append(loss.item())  # Appending to list
+            loss, current = loss.item(), batch * len(x)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
-        #Accuracy
+        # Accuracy
         predictions = (torch.sigmoid(outputs) > 0.5).float()
         correct_Predictions += (predictions.squeeze() == y).sum().item()
         total_Samples += y.size(0)
 
-    epoch_Loss = loss.item()
+    epoch_Loss = losses[-1] if losses else 0  # Last recorded loss
     print(f"Epoch Loss: {epoch_Loss:.4f}")
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
-    return epoch_Loss, epoch_Accuracy
-
+    
+    scheduler.step()
+    # Step the scheduler at the end of the epoch to update the learning rate
+    
+    return epoch_Loss, epoch_Accuracy, scheduler
 
 def testModel(dataloader, model):
     lossFunction = nn.BCEWithLogitsLoss()
@@ -164,21 +162,21 @@ def main():
     print(f"Using {device} device")
 
     # Make sure these files exist in a 'data' folder:
-    if not os.path.exists('CS3840-Project-1/data/train.csv'):
+    if not os.path.exists('data/train.csv'):
         print("Error: 'train.csv' file not found.")
         return
     else:
-        df_train = pd.read_csv('CS3840-Project-1/data/train.csv')
+        df_train = pd.read_csv('data/train.csv')
 
-    if not os.path.exists('CS3840-Project-1/data/test.csv'):
+    if not os.path.exists('data/test.csv'):
         print("Error: 'test.csv' file not found.")
         return
     else:
-        df_test = pd.read_csv('CS3840-Project-1/data/test.csv')
+        df_test = pd.read_csv('data/test.csv')
 
     # Preprocess training data and get DataLoader + effective input size
     processedDataLoader, size = preProcessing(df_train)
-    proceesedTestDataLoader, size = preProcessing(df_test)
+    processedTestDataLoader, size = preProcessing(df_test)  # Fixed variable name
 
     #Initialize path for model
     modelPath = "saved_models/saved_model8-4lr00005.pth"
@@ -190,30 +188,36 @@ def main():
     testLosses = np.array([])
     testAccuracies = np.array([])
 
-    for epoch in range(20):
+    prev_test_loss = float('inf')  # Initialize to a large number to start with
+
+    # Training loop
+    for epoch in range(50):  # Epochs loop
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.0001)
+        trainLoss, trainAccuracy, scheduler = trainModel(model, processedDataLoader, device, learning_rate=0.005)
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
         print(f"Mean train Loss: {trainLosses.mean():.4f}")
-        testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
+        testLoss, testAccuracy = testModel(processedTestDataLoader, model)
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
-          
+
+        # Check for overfitting
+        if testLoss > prev_test_loss:
+            print("Warning: Model might be overfitting!")
+        
+        prev_test_loss = testLoss  # Update previous test loss
+# Add this line inside your trainModel function to print learning rate
+        print(f"Learning Rate at Epoch {epoch+1}: {scheduler.get_last_lr()[0]}")
+        scheduler.step()
+        # Learning rate after each epoch
+        
+
     os.makedirs(os.path.dirname(modelPath), exist_ok=True)
 
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
 
-
-    # Simple demonstration plot of the first batch's feature distribution
-    # batch = next(iter(processedDatset))
-    # plt.boxplot(batch[0].numpy())
-    # plt.ylabel('Feature Values')
-    # plt.xlabel('Features')
-    # plt.title("Boxplot of One Batch of Features")
-    # plt.show()
-
+    # Plotting training loss and accuracy over epochs
     plt.plot(trainLosses, label='Train Loss')
     plt.plot(testLosses, label='Test Loss')
     plt.ylabel('Loss')
@@ -229,7 +233,6 @@ def main():
     plt.title("Accuracy over Time")
     plt.legend()
     plt.show()
-
 
 if __name__ == "__main__":
     main()
