@@ -27,14 +27,18 @@ class NeuralNetwork(nn.Module):
             nn.Linear(size, 8),    # Input layer
             nn.BatchNorm1d(8),
             nn.ReLU(),
-            nn.Dropout(p=0.1),     # Dropout after first activation
+            nn.Dropout(p=0.2),     # Dropout after first activation
 
             nn.Linear(8, 4),       # Hidden layer
             nn.BatchNorm1d(4),
             nn.ReLU(),
+            nn.Dropout(p=0.1),     # Dropout after first activation
 
-            nn.Linear(4, 1)        # Output layer (binary classification)
-
+            nn.Linear(4, 2),
+            nn.BatchNorm1d(2),
+            nn.ReLU(),
+                            # Output layer (binary classification)
+            nn.Linear(2, 1),
         )
 
     def forward(self, x):
