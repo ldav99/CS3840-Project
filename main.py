@@ -69,7 +69,7 @@ def preProcessing(dataset):
 
     # Create TensorDataset and DataLoader
     tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
-    dataloader = DataLoader(tensor_dataset, batch_size=64, shuffle=True)
+    dataloader = DataLoader(tensor_dataset, batch_size=12, shuffle=True)
 
     effective_input_size = tensor_inputs.shape[1]
     return dataloader, effective_input_size
@@ -122,7 +122,7 @@ def trainModel(model, dataloader, device, learning_rate):
 
         if batch % 300 == 0:
             losses = np.append(losses, loss.item())
-            loss, current = loss.item(), batch * 32 + len(x)
+            loss, current = loss.item(), batch * 64 + len(x)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
         #Accuracy
@@ -192,7 +192,7 @@ def main():
 
     for epoch in range(20):
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.0005)
+        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.0001)
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
         print(f"Mean train Loss: {trainLosses.mean():.4f}")
