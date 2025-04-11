@@ -26,7 +26,7 @@ class NeuralNetwork(nn.Module):
         # Define the layers of the network using nn.Sequential for simplicity.
         self.linear_sigmoid_stack = nn.Sequential(
             # First Layer: Linear transformation (size input features -> 8 output features)
-            nn.Linear(size, 8),   # 22 input features (size), 8 output features
+            nn.Linear(size, 8),   # 27 input features (size), 8 output features
             nn.ReLU(),            # Apply ReLU activation function
 
             # Second Layer (commented out): Would add another layer with 512 input and 256 output features
