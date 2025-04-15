@@ -99,12 +99,13 @@ def trainModel(model, dataloader, device, learning_rate):
 
     model = model.to(device)
     losses = np.array([])
-    accuracies = []
+    
 
     model.train()
 
     correct_Predictions = 0
     total_Samples = 0
+
     for batch, (x, y) in enumerate(dataloader):
         x = x.to(device)
         y = y.to(device).float()
@@ -129,10 +130,12 @@ def trainModel(model, dataloader, device, learning_rate):
         correct_Predictions += (predictions.squeeze() == y).sum().item()
         total_Samples += y.size(0)
 
+
     epoch_Loss = loss.item()
     print(f"Epoch Loss: {epoch_Loss:.4f}")
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
+
     return epoch_Loss, epoch_Accuracy
 
 
@@ -141,7 +144,7 @@ def testModel(dataloader, model):
     model.eval()
     size = len(dataloader.dataset)
     batch = len(dataloader)
-    testloss, correct = 0,0
+    testloss, correct,  true_positives, false_positives, false_negatives = 0,0,0,0,0
 
     with torch.no_grad():
         for x, y in dataloader:
@@ -152,7 +155,27 @@ def testModel(dataloader, model):
     testloss /= batch
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
-    return testloss, correct
+
+    true_positives += ((predictions.squeeze() == 1) & (y == 1)).sum().item()
+    false_positives += ((predictions.squeeze() == 1) & (y == 0)).sum().item()
+    false_negatives += ((predictions.squeeze() == 0) & (y == 1)).sum().item()
+
+    if (true_positives + false_positives) > 0:
+        precision = true_positives / (true_positives + false_positives)
+    else:
+        precision = 0.0
+
+    if (true_positives + false_negatives) > 0:
+        recall = true_positives / (true_positives + false_negatives)
+    else: 
+        recall = 0.0
+    if (precision + recall) > 0:
+        f1_score = 2 * (precision * recall) / (precision + recall)
+    else:  
+        f1_score = 0.0
+    print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1_score:.4f}")
+
+    return testloss, correct, precision, recall, f1_score
 
 
 # ----------------------------------------
@@ -180,7 +203,7 @@ def main():
     proceesedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lLD24.pth"
+    modelPath = "saved_models/saved_model8-4lLD25.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -188,22 +211,32 @@ def main():
     trainAccuracies = np.array([])
     testLosses = np.array([])
     testAccuracies = np.array([])
+    precisions = np.array([])
+    recalls = np.array([])
+    f1_scores = np.array([])
+    
 
     #Initialize Loss Decay
     learning_rate = 0.00005
     #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     #scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
 
-    for epoch in range(150):
+    for epoch in range(50):
         #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate)
+        trainLoss, trainAccuracy, = trainModel(model, processedDataLoader, device, learning_rate)
+        
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
         print(f"Mean train Loss: {trainLosses.mean():.4f}")
-        testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
+        
+        testLoss, testAccuracy, precision, recall, f1_score = testModel(proceesedTestDataLoader, model)
+        
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
+        precisions = np.append(precisions, precisions)
+        recalls = np.append(recalls, recall)
+        f1_scores = np.append(f1_scores, f1_score)
 
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
@@ -216,6 +249,14 @@ def main():
     # plt.xlabel('Features')
     # plt.title("Boxplot of One Batch of Features")
     # plt.show()
+    print(recalls)
+    print(precisions)
+    plt.plot(recalls, precisions)
+    plt.ylabel('Precision')
+    plt.xlabel('Recall')
+    plt.title("Precision vs Recall")
+    plt.legend()
+    plt.show()
 
     plt.plot(trainLosses, label='Train Loss')
     plt.plot(testLosses, label='Test Loss')
