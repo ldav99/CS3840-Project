@@ -56,8 +56,6 @@ def preProcessing(dataset):
     scaler = StandardScaler()
     dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
 
-    print(dataset.info())  # Final check before tensor conversion
-
 
     # Separate inputs and targets
     x = dataset.drop(columns='satisfaction').astype(float)
@@ -148,17 +146,18 @@ def testModel(dataloader, model):
 
     with torch.no_grad():
         for x, y in dataloader:
+
             outputs = model(x)
             testloss += lossFunction(outputs, y.unsqueeze(1))
             predictions = (torch.sigmoid(outputs) > 0.5).float().squeeze()
             correct += (predictions == y).sum().item()
+            true_positives += ((predictions.squeeze() == 1) & (y == 1)).sum().item()
+            false_positives += ((predictions.squeeze() == 1) & (y == 0)).sum().item()
+            false_negatives += ((predictions.squeeze() == 0) & (y == 1)).sum().item()
     testloss /= batch
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
 
-    true_positives += ((predictions.squeeze() == 1) & (y == 1)).sum().item()
-    false_positives += ((predictions.squeeze() == 1) & (y == 0)).sum().item()
-    false_negatives += ((predictions.squeeze() == 0) & (y == 1)).sum().item()
 
     if (true_positives + false_positives) > 0:
         precision = true_positives / (true_positives + false_positives)
@@ -203,7 +202,7 @@ def main():
     proceesedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lLD25.pth"
+    modelPath = "saved_models/saved_model8-4lLD26.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -221,7 +220,7 @@ def main():
     #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     #scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
 
-    for epoch in range(50):
+    for epoch in range(150):
         #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
         trainLoss, trainAccuracy, = trainModel(model, processedDataLoader, device, learning_rate)
@@ -249,13 +248,17 @@ def main():
     # plt.xlabel('Features')
     # plt.title("Boxplot of One Batch of Features")
     # plt.show()
-    print(recalls)
-    print(precisions)
-    plt.plot(recalls, precisions)
-    plt.ylabel('Precision')
-    plt.xlabel('Recall')
-    plt.title("Precision vs Recall")
-    plt.legend()
+
+    plt.plot(recalls)
+    plt.ylabel('Recall')
+    plt.xlabel('# of Epochs')
+    plt.title("Recall over time")
+    plt.show()
+
+    plt.plot(precisions)
+    plt.ylabel('precision')
+    plt.xlabel('# of Epochs')
+    plt.title("Precision over time")
     plt.show()
 
     plt.plot(trainLosses, label='Train Loss')
