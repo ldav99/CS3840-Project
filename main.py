@@ -8,12 +8,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.metrics import precision_score, recall_score, f1_score
 import neuralNetwork as modelNN
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
-
 
 # ---------------------------------------
 # Pre Process the Data
@@ -58,8 +56,6 @@ def preProcessing(dataset):
     scaler = StandardScaler()
     dataset[numerical_features] = scaler.fit_transform(dataset[numerical_features])
 
-    print(dataset.info())  # Final check before tensor conversion
-
 
     # Separate inputs and targets
     x = dataset.drop(columns='satisfaction').astype(float)
@@ -71,7 +67,7 @@ def preProcessing(dataset):
 
     # Create TensorDataset and DataLoader
     tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
-    dataloader = DataLoader(tensor_dataset, batch_size=12, shuffle=True)
+    dataloader = DataLoader(tensor_dataset, batch_size=512, shuffle=True)
 
     effective_input_size = tensor_inputs.shape[1]
     return dataloader, effective_input_size
@@ -94,7 +90,6 @@ def loadModel(device, size, path):
 # ----------------------------------------
 # Training Function
 # ----------------------------------------
-#https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
 def trainModel(model, dataloader, device, learning_rate):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -102,15 +97,13 @@ def trainModel(model, dataloader, device, learning_rate):
 
     model = model.to(device)
     losses = np.array([])
-
-    # precision, recall, f1 = [], [], []
-    y_true = []
-    y_pred = []
+    
 
     model.train()
 
     correct_Predictions = 0
     total_Samples = 0
+
     for batch, (x, y) in enumerate(dataloader):
         x = x.to(device)
         y = y.to(device).float()
@@ -125,7 +118,7 @@ def trainModel(model, dataloader, device, learning_rate):
         optimizer.zero_grad()
 
 
-        if batch % 300 == 0:
+        if batch % 600 == 0:
             losses = np.append(losses, loss.item())
             loss, current = loss.item(), batch * 64 + len(x)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
@@ -135,22 +128,13 @@ def trainModel(model, dataloader, device, learning_rate):
         correct_Predictions += (predictions.squeeze() == y).sum().item()
         total_Samples += y.size(0)
 
-        y_true.extend(y.cpu().numpy())
-        y_pred.extend(predictions.squeeze().cpu().numpy())
 
     epoch_Loss = loss.item()
     print(f"Epoch Loss: {epoch_Loss:.4f}")
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
 
-    
-    epoch_Precision = precision_score(y_true, y_pred, zero_division=0)
-    print(f"Precision: {epoch_Precision:.4f}")
-
-    epoch_Recall = recall_score(y_true, y_pred, zero_division=0)
-    print(f"Recall: {epoch_Recall:.4f}")
-
-    return epoch_Loss, epoch_Accuracy, epoch_Precision, epoch_Recall
+    return epoch_Loss, epoch_Accuracy
 
 
 def testModel(dataloader, model):
@@ -158,18 +142,39 @@ def testModel(dataloader, model):
     model.eval()
     size = len(dataloader.dataset)
     batch = len(dataloader)
-    testloss, correct = 0,0
+    testloss, correct,  true_positives, false_positives, false_negatives = 0,0,0,0,0
 
     with torch.no_grad():
         for x, y in dataloader:
+
             outputs = model(x)
             testloss += lossFunction(outputs, y.unsqueeze(1))
             predictions = (torch.sigmoid(outputs) > 0.5).float().squeeze()
             correct += (predictions == y).sum().item()
+            true_positives += ((predictions.squeeze() == 1) & (y == 1)).sum().item()
+            false_positives += ((predictions.squeeze() == 1) & (y == 0)).sum().item()
+            false_negatives += ((predictions.squeeze() == 0) & (y == 1)).sum().item()
     testloss /= batch
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
-    return testloss, correct
+
+
+    if (true_positives + false_positives) > 0:
+        precision = true_positives / (true_positives + false_positives)
+    else:
+        precision = 0.0
+
+    if (true_positives + false_negatives) > 0:
+        recall = true_positives / (true_positives + false_negatives)
+    else: 
+        recall = 0.0
+    if (precision + recall) > 0:
+        f1_score = 2 * (precision * recall) / (precision + recall)
+    else:  
+        f1_score = 0.0
+    print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1_score:.4f}")
+
+    return testloss, correct, precision, recall, f1_score
 
 
 # ----------------------------------------
@@ -197,7 +202,7 @@ def main():
     proceesedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lr00005.pth"
+    modelPath = "saved_models/saved_model8-4lLD26.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -205,28 +210,36 @@ def main():
     trainAccuracies = np.array([])
     testLosses = np.array([])
     testAccuracies = np.array([])
-    trainPrecisions = np.array([])
-    trainRecalls = np.array([])
-    # testPrecisions = np.array([])
-    # testRecalls = np.array([])
+    precisions = np.array([])
+    recalls = np.array([])
+    f1_scores = np.array([])
+    
 
-    for epoch in range(10):
+    #Initialize Loss Decay
+    learning_rate = 0.00005
+    #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    #scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
+
+    for epoch in range(150):
+        #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy, trainPrecision, trainRecall = trainModel(model, processedDataLoader, device, learning_rate=0.00005)
+        trainLoss, trainAccuracy, = trainModel(model, processedDataLoader, device, learning_rate)
         
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
-
-        trainRecalls = np.append(trainRecalls, trainRecall)
-        trainPrecisions = np.append(trainPrecisions, trainPrecision)
+        print(f"Mean train Loss: {trainLosses.mean():.4f}")
+        
+        testLoss, testAccuracy, precision, recall, f1_score = testModel(proceesedTestDataLoader, model)
+        
+        testLosses = np.append(testLosses, testLoss)
+        testAccuracies = np.append(testAccuracies, testAccuracy)
+        precisions = np.append(precisions, precision)
+        recalls = np.append(recalls, recall)
+        f1_scores = np.append(f1_scores, f1_score)
 
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
-        
-    print(f"Mean train Loss: {trainLosses.mean():.4f}")
-    testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
-    testLosses = np.append(testLosses, testLoss)
-    testAccuracies = np.append(testAccuracies, testAccuracy)
+
 
     # Simple demonstration plot of the first batch's feature distribution
     # batch = next(iter(processedDatset))
@@ -236,19 +249,23 @@ def main():
     # plt.title("Boxplot of One Batch of Features")
     # plt.show()
 
+    plt.plot(recalls)
+    plt.ylabel('Recall')
+    plt.xlabel('# of Epochs')
+    plt.title("Recall over time")
+    plt.show()
+
+    plt.plot(precisions)
+    plt.ylabel('precision')
+    plt.xlabel('# of Epochs')
+    plt.title("Precision over time")
+    plt.show()
+
     plt.plot(trainLosses, label='Train Loss')
     plt.plot(testLosses, label='Test Loss')
     plt.ylabel('Loss')
     plt.xlabel('# of Epochs')
     plt.title("Loss over Time")
-    plt.legend()
-    plt.show()
-
-    plt.plot(trainPrecisions, label='Train Precision')
-    # plt.plot(testPrecisions, label='Test Precision')
-    plt.ylabel('Precision')
-    plt.xlabel('# of Epochs')
-    plt.title("Precision over Time")
     plt.legend()
     plt.show()
 
