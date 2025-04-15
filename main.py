@@ -12,6 +12,7 @@ import neuralNetwork as modelNN
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
+from torch.optim.lr_scheduler import StepLR
 
 # ---------------------------------------
 # Pre Process the Data
@@ -69,7 +70,7 @@ def preProcessing(dataset):
 
     # Create TensorDataset and DataLoader
     tensor_dataset = TensorDataset(tensor_inputs, tensor_targets)
-    dataloader = DataLoader(tensor_dataset, batch_size=12, shuffle=True)
+    dataloader = DataLoader(tensor_dataset, batch_size=512, shuffle=True)
 
     effective_input_size = tensor_inputs.shape[1]
     return dataloader, effective_input_size
@@ -120,7 +121,7 @@ def trainModel(model, dataloader, device, learning_rate):
         optimizer.zero_grad()
 
 
-        if batch % 300 == 0:
+        if batch % 600 == 0:
             losses = np.append(losses, loss.item())
             loss, current = loss.item(), batch * 64 + len(x)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
@@ -181,7 +182,7 @@ def main():
     proceesedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lr00005.pth"
+    modelPath = "saved_models/saved_model8-4lLD24.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -190,16 +191,22 @@ def main():
     testLosses = np.array([])
     testAccuracies = np.array([])
 
-    for epoch in range(10):
+    #Initialize Loss Decay
+    learning_rate = 0.00005
+    #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    #scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
+
+    for epoch in range(150):
+        #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate=0.00005)
+        trainLoss, trainAccuracy = trainModel(model, processedDataLoader, device, learning_rate)
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
         print(f"Mean train Loss: {trainLosses.mean():.4f}")
         testLoss, testAccuracy = testModel(proceesedTestDataLoader, model)
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
-          
+
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
 
