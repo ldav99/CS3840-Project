@@ -12,7 +12,6 @@ import neuralNetwork as modelNN
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
-from torch.optim.lr_scheduler import StepLR
 
 # ---------------------------------------
 # Pre Process the Data
@@ -93,7 +92,6 @@ def loadModel(device, size, path):
 # ----------------------------------------
 # Training Function
 # ----------------------------------------
-#https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
 def trainModel(model, dataloader, device, learning_rate):
     lossFunction = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
