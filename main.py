@@ -234,7 +234,7 @@ def main():
         
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
-        precisions = np.append(precisions, precisions)
+        precisions = np.append(precisions, precision)
         recalls = np.append(recalls, recall)
         f1_scores = np.append(f1_scores, f1_score)
 
