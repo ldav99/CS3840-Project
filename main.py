@@ -151,14 +151,16 @@ def testModel(dataloader, model):
             testloss += lossFunction(outputs, y.unsqueeze(1))
             predictions = (torch.sigmoid(outputs) > 0.5).float().squeeze()
             correct += (predictions == y).sum().item()
+            # Calculate true positives, false positives, and false negatives
             true_positives += ((predictions.squeeze() == 1) & (y == 1)).sum().item()
             false_positives += ((predictions.squeeze() == 1) & (y == 0)).sum().item()
             false_negatives += ((predictions.squeeze() == 0) & (y == 1)).sum().item()
+    
     testloss /= batch
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
 
-
+    # When calculating precision and recall, we need to avoid division by zero.
     if (true_positives + false_positives) > 0:
         precision = true_positives / (true_positives + false_positives)
     else:
