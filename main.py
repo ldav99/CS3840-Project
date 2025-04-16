@@ -199,7 +199,7 @@ def main():
     processedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lLD28.pth"
+    modelPath = "saved_models/saved_model8-4lLD30.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -207,17 +207,12 @@ def main():
     trainAccuracies = np.array([])
     testLosses = np.array([])
     testAccuracies = np.array([])
-    precisions = np.array([])
-    recalls = np.array([])
-    f1_scores = np.array([])
     
 
     #Initialize Loss Decay
     learning_rate = 0.00005
-    #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    #scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
-
-    for epoch in range(10):
+    
+    for epoch in range(150):
         #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
         trainLoss, trainAccuracy,  trainPreds, trainLabels = trainModel(model, processedDataLoader, device, learning_rate)
