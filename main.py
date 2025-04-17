@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import neuralNetwork as modelNN
 import torch
 from torch import nn
@@ -98,6 +99,8 @@ def trainModel(model, dataloader, device, learning_rate):
     model = model.to(device)
     losses = np.array([])
     
+    all_preds = []
+    all_labels = []
 
     model.train()
 
@@ -109,6 +112,12 @@ def trainModel(model, dataloader, device, learning_rate):
         y = y.to(device).float()
 
         outputs = model(x)
+        
+        # Store predictions and labels for later analysis
+        predictions = (torch.sigmoid(outputs) > 0.5).float()
+        all_preds.extend(predictions.cpu().numpy())
+        all_labels.extend(y.cpu().numpy())
+
         # Unsqueeze targets to match [batch_size, 1] shape of outputs
         loss = lossFunction(outputs, y.unsqueeze(1))
         
@@ -118,13 +127,12 @@ def trainModel(model, dataloader, device, learning_rate):
         optimizer.zero_grad()
 
 
-        if batch % 600 == 0:
+        if batch % 10 == 0:
             losses = np.append(losses, loss.item())
             loss, current = loss.item(), batch * 64 + len(x)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
     
         #Accuracy
-        predictions = (torch.sigmoid(outputs) > 0.5).float()
         correct_Predictions += (predictions.squeeze() == y).sum().item()
         total_Samples += y.size(0)
 
@@ -134,7 +142,7 @@ def trainModel(model, dataloader, device, learning_rate):
     epoch_Accuracy = correct_Predictions / total_Samples
     print(f"Accuracy: {epoch_Accuracy:.4f}")
 
-    return epoch_Loss, epoch_Accuracy
+    return epoch_Loss, epoch_Accuracy, all_preds, all_labels
 
 
 def testModel(dataloader, model):
@@ -142,7 +150,11 @@ def testModel(dataloader, model):
     model.eval()
     size = len(dataloader.dataset)
     batch = len(dataloader)
-    testloss, correct,  true_positives, false_positives, false_negatives = 0,0,0,0,0
+    testloss = 0 
+    correct = 0
+
+    all_preds = []
+    all_labels = []
 
     with torch.no_grad():
         for x, y in dataloader:
@@ -150,31 +162,16 @@ def testModel(dataloader, model):
             outputs = model(x)
             testloss += lossFunction(outputs, y.unsqueeze(1))
             predictions = (torch.sigmoid(outputs) > 0.5).float().squeeze()
+            all_preds.extend(predictions.cpu().numpy())
+            all_labels.extend(y.cpu().numpy())
             correct += (predictions == y).sum().item()
-            true_positives += ((predictions.squeeze() == 1) & (y == 1)).sum().item()
-            false_positives += ((predictions.squeeze() == 1) & (y == 0)).sum().item()
-            false_negatives += ((predictions.squeeze() == 0) & (y == 1)).sum().item()
+    
     testloss /= batch
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {testloss:>8f} \n")
 
 
-    if (true_positives + false_positives) > 0:
-        precision = true_positives / (true_positives + false_positives)
-    else:
-        precision = 0.0
-
-    if (true_positives + false_negatives) > 0:
-        recall = true_positives / (true_positives + false_negatives)
-    else: 
-        recall = 0.0
-    if (precision + recall) > 0:
-        f1_score = 2 * (precision * recall) / (precision + recall)
-    else:  
-        f1_score = 0.0
-    print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, F1 Score: {f1_score:.4f}")
-
-    return testloss, correct, precision, recall, f1_score
+    return testloss, correct, all_preds, all_labels
 
 
 # ----------------------------------------
@@ -199,10 +196,10 @@ def main():
 
     # Preprocess training data and get DataLoader + effective input size
     processedDataLoader, size = preProcessing(df_train)
-    proceesedTestDataLoader, size = preProcessing(df_test)
+    processedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lLD26.pth"
+    modelPath = "saved_models/saved_model8-4lLD30.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -210,32 +207,25 @@ def main():
     trainAccuracies = np.array([])
     testLosses = np.array([])
     testAccuracies = np.array([])
-    precisions = np.array([])
-    recalls = np.array([])
-    f1_scores = np.array([])
     
 
     #Initialize Loss Decay
     learning_rate = 0.00005
-    #optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    #scheduler = StepLR(optimizer, step_size=2, gamma=0.1)
-
+    
     for epoch in range(150):
         #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
-        trainLoss, trainAccuracy, = trainModel(model, processedDataLoader, device, learning_rate)
+        trainLoss, trainAccuracy,  trainPreds, trainLabels = trainModel(model, processedDataLoader, device, learning_rate)
         
         trainLosses = np.append(trainLosses, trainLoss)
         trainAccuracies = np.append(trainAccuracies, trainAccuracy)
         print(f"Mean train Loss: {trainLosses.mean():.4f}")
         
-        testLoss, testAccuracy, precision, recall, f1_score = testModel(proceesedTestDataLoader, model)
+        testLoss, testAccuracy, testPreds, testLabels = testModel(processedTestDataLoader, model)
         
         testLosses = np.append(testLosses, testLoss)
         testAccuracies = np.append(testAccuracies, testAccuracy)
-        precisions = np.append(precisions, precision)
-        recalls = np.append(recalls, recall)
-        f1_scores = np.append(f1_scores, f1_score)
+     
 
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
@@ -249,16 +239,16 @@ def main():
     # plt.title("Boxplot of One Batch of Features")
     # plt.show()
 
-    plt.plot(recalls)
-    plt.ylabel('Recall')
-    plt.xlabel('# of Epochs')
-    plt.title("Recall over time")
+    cm_train = confusion_matrix(trainLabels, trainPreds)
+    disp_train = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=["Dissatisfied", "Satisfied"])
+    disp_train.plot(cmap=plt.cm.Blues)
+    plt.title("Confusion Matrix (Training Data)")
     plt.show()
 
-    plt.plot(precisions)
-    plt.ylabel('precision')
-    plt.xlabel('# of Epochs')
-    plt.title("Precision over time")
+    cm_train = confusion_matrix(testLabels, testPreds)
+    disp_train = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=["Dissatisfied", "Satisfied"])
+    disp_train.plot(cmap=plt.cm.Blues)
+    plt.title("Confusion Matrix (Test Data)")
     plt.show()
 
     plt.plot(trainLosses, label='Train Loss')
