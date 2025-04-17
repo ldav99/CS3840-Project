@@ -199,7 +199,7 @@ def main():
     processedTestDataLoader, size = preProcessing(df_test)
 
     #Initialize path for model
-    modelPath = "saved_models/saved_model8-4lLD30.pth"
+    modelPath = "saved_models/saved_model2.pth"
 
     # Build and train the model
     model = loadModel(device, size, modelPath)
@@ -212,7 +212,7 @@ def main():
     #Initialize Loss Decay
     learning_rate = 0.00005
     
-    for epoch in range(150):
+    for epoch in range(1000):
         #scheduler.step()
         print(f"\nEpoch {epoch+1}\n-------------------------------")
         trainLoss, trainAccuracy,  trainPreds, trainLabels = trainModel(model, processedDataLoader, device, learning_rate)
