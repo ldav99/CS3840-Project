@@ -230,15 +230,6 @@ def main():
     torch.save(model.state_dict(), modelPath)
     print("Model saved successfully.")
 
-
-    # Simple demonstration plot of the first batch's feature distribution
-    # batch = next(iter(processedDatset))
-    # plt.boxplot(batch[0].numpy())
-    # plt.ylabel('Feature Values')
-    # plt.xlabel('Features')
-    # plt.title("Boxplot of One Batch of Features")
-    # plt.show()
-
     cm_train = confusion_matrix(trainLabels, trainPreds)
     disp_train = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=["Dissatisfied", "Satisfied"])
     disp_train.plot(cmap=plt.cm.Blues)
